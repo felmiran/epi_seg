@@ -1,0 +1,24 @@
+Estudiar:
+- argumentos scripts python
+- makefile (pipeline?)
+- wrapper functions (que hacen y como se hacen)
+- subprocess python
+
+
+Conceptos>
+- package: una carpeta con .py files
+- module: un .py file
+
+
+Estructura del proyecto>
+1. parsear XML de anotaciones
+2. llevar anotaciones a coordenadas en pixeles tipo ndpisplit
+3. crear set de imagenes cortadas
+4. etiquetar imagenes del tipo "dentro" o "afuera" de region anotada
+5. deep learning (despues)
+
+
+deep learning:
+https://www.wouterbulten.nl/blog/tech/epithelium-segmentation-using-deep-learning/
+https://www.sciencedirect.com/science/article/pii/S0925231216001004
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4977982/
