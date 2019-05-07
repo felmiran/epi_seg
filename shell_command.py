@@ -37,10 +37,10 @@ magnification = "x40"
 zlevel = "z0"
 x = 0
 y = 0
-width = 10000
-height = 10000
-label = "10000x10000"
-ndpi_path = "prueba1.ndpi"
+width = 28672
+height = 17152
+label = "full"
+ndpi_path = "prueba2.ndpi"
 has_parameters = True
 
 if has_parameters:

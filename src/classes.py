@@ -1,3 +1,6 @@
+import sys
+sys.path.append('C:/Users/felipe/openslide-win64-20171122/bin')
+
 import xml.etree.ElementTree as ET
 import openslide
 import os
@@ -42,6 +45,69 @@ class ImageProperties:
          return offset_x, offset_y, mpp_x, mpp_y, width_lvl_0, height_lvl_0
 
 
+class ImageAnnotationList:
+    '''
+        Esta clase es el set de anotaciones de una imagen (esta imagen esta representada por el filename)
+    '''
+    def __init__(self, associated_image, annotation_path):
+        self.associated_image = associated_image
+        self.annotation_path = annotation_path
+        self.annotation_list = self.create_annotations()
+
+    def create_annotations(self):
+
+        '''
+         funcion para crear las anotaciones con su id, path, image_path y puntos.
+
+         input:
+         -  image properties object
+         -  annotation_path
+
+         returns:
+         -  lista de annotation objects, cada una de las cuales contiene:
+                -  annotation_id: el id de la anotacion para esta imagen 
+                -  annotation_title: el titulo (epithelium u otro)
+                -  annotation_path: el path del archivo del que se saco la anotacion
+                -  image_path: ubicacion de la imagen a la que esta asociada la anotacion
+                -  points: la lista con las tuplas de puntos para la anotacion
+        '''
+        
+        annotations = []
+
+        ndpa = open(self.annotation_path)
+        tree = ET.parse(ndpa)
+        
+        for ndpviewstate in tree.findall('ndpviewstate'):
+
+            annotation_title = ndpviewstate.find('title').text
+            annotation_id = ndpviewstate.get('id')
+
+            points = []
+
+            for p in ndpviewstate.find('annotation').find('pointlist').findall('point'):
+                point_x = float(p.find('x').text)
+                point_y = float(p.find('y').text)
+                point = Point(point_x,point_y)
+
+                points.append(point_from_physical_to_pixels(point_obj=point, \
+                    image_prop_obj=self.associated_image))
+
+            annotation = Annotation(annotation_id=annotation_id, \
+                    annotation_title=annotation_title, annotation_path=self.annotation_path, \
+                            associated_image=self.associated_image, points=points)
+
+            annotations.append(annotation)
+
+        return annotations
+
+
+    def merge_annotations(self):
+        '''
+            funcion para mergear las anotaciones por ID de anotacion 
+            (quizas tambien seria bueno hacerlo por "title")
+        '''
+        return
+
 
 
 class Annotation:
@@ -71,7 +137,6 @@ class Annotation:
         img = Image.new('L', (width, height), 0)
         ImageDraw.Draw(img).polygon(polygon, outline=0, fill=1)
         mask = np.array(img)
-        # mask = img
 
         return mask
 
@@ -137,52 +202,6 @@ def point_from_physical_to_pixels(point_obj, image_prop_obj=None):
         y = point_obj.coord[1] / (image_prop_obj.mpp_y * 1000) - y_0
 
         return (round(x),round(y))
-
-
-def create_annotations(image_prop_obj = None, annotation_path = None):
-        '''
-         funcion para crear las anotaciones con su id, path, image_path y puntos.
-
-         input:
-         -  image properties object
-         -  annotation_path
-
-         returns:
-         -  lista de annotation objects, cada una de las cuales contiene:
-                -  annotation_id: el id de la anotacion para esta imagen 
-                -  annotation_title: el titulo (epithelium u otro)
-                -  annotation_path: el path del archivo del que se saco la anotacion
-                -  image_path: ubicacion de la imagen a la que esta asociada la anotacion
-                -  points: la lista con las tuplas de puntos para la anotacion
-        '''
-        
-        annotations = []
-
-        ndpa = open(annotation_path)
-        tree = ET.parse(ndpa)
-        
-        for ndpviewstate in tree.findall('ndpviewstate'):
-
-            annotation_title = ndpviewstate.find('title').text
-            annotation_id = ndpviewstate.get('id')
-
-            points = []
-
-            for p in ndpviewstate.find('annotation').find('pointlist').findall('point'):
-                point_x = float(p.find('x').text)
-                point_y = float(p.find('y').text)
-                point = Point(point_x,point_y)
-
-                points.append(point_from_physical_to_pixels(point_obj=point, \
-                    image_prop_obj=image_prop_obj))
-
-            annotation = Annotation(annotation_id=annotation_id, \
-                    annotation_title=annotation_title, annotation_path=annotation_path, \
-                            associated_image=image_prop_obj, points=points)
-
-            annotations.append(annotation)
-
-        return annotations
 
 
 
