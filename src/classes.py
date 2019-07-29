@@ -1,5 +1,5 @@
 import sys
-sys.path.append('C:/Users/felipe/openslide-win64-20171122/bin')
+# sys.path.append('C:/Users/felipe/openslide-win64-20171122/bin')
 
 import xml.etree.ElementTree as ET
 import openslide
@@ -12,7 +12,8 @@ class ImageProperties:
     def __init__(self,image_path):
         self.image_path = image_path
         self.offset_x, self.offset_y, self.mpp_x, \
-            self.mpp_y, self.width_lvl_0, self.height_lvl_0 = self._get_image_parameters()
+            self.mpp_y, self.width_lvl_0, \
+                self.height_lvl_0 = self._get_image_parameters()
 
     def _get_image_parameters(self):
          '''
@@ -21,11 +22,14 @@ class ImageProperties:
           -  hamamatsu.YOffsetFromSlideCentre: 
           -  openslide.mpp-x: 
           -  openslide.mpp-y: 
-          -  openslide.level[0].width: image width in its max resolution level (usually x40)
-          -  openslide.level[0].height: image height in its max resolution level (usually x40)
+          -  openslide.level[0].width: image width in its max 
+             resolution level (usually x40)
+          -  openslide.level[0].height: image height in its max 
+             resolution level (usually x40)
 
 
-            ESTO QUIZAS PODRIA SER UNA FUNCION NO MAS... NO NECESITA SER UNA CLASE EN REALIDAD
+            ESTO QUIZAS PODRIA SER UNA FUNCION NO MAS... 
+            NO NECESITA SER UNA CLASE EN REALIDAD
 
          '''
 
@@ -47,7 +51,8 @@ class ImageProperties:
 
 class ImageAnnotationList:
     '''
-        Esta clase es el set de anotaciones de una imagen (esta imagen esta representada por el filename)
+        Esta clase es el set de anotaciones de una imagen 
+        (esta imagen esta representada por el filename)
     '''
     def __init__(self, associated_image, annotation_path):
         self.associated_image = associated_image
@@ -57,7 +62,8 @@ class ImageAnnotationList:
     def create_annotations(self):
 
         '''
-         funcion para crear las anotaciones con su id, path, image_path y puntos.
+         funcion para crear las anotaciones con su id, path, image_path y 
+         puntos.
 
          input:
          -  image properties object
@@ -67,8 +73,10 @@ class ImageAnnotationList:
          -  lista de annotation objects, cada una de las cuales contiene:
                 -  annotation_id: el id de la anotacion para esta imagen 
                 -  annotation_title: el titulo (epithelium u otro)
-                -  annotation_path: el path del archivo del que se saco la anotacion
-                -  image_path: ubicacion de la imagen a la que esta asociada la anotacion
+                -  annotation_path: el path del archivo del que se saco la 
+                   anotacion
+                -  image_path: ubicacion de la imagen a la que esta asociada 
+                   la anotacion
                 -  points: la lista con las tuplas de puntos para la anotacion
         '''
         
@@ -81,10 +89,10 @@ class ImageAnnotationList:
 
             annotation_title = ndpviewstate.find('title').text
             annotation_id = ndpviewstate.get('id')
-
+            pointlist = ndpviewstate.find('annotation').find('pointlist')
             points = []
 
-            for p in ndpviewstate.find('annotation').find('pointlist').findall('point'):
+            for p in pointlist.findall('point'):
                 point_x = float(p.find('x').text)
                 point_y = float(p.find('y').text)
                 point = Point(point_x,point_y)
@@ -93,8 +101,10 @@ class ImageAnnotationList:
                     image_prop_obj=self.associated_image))
 
             annotation = Annotation(annotation_id=annotation_id, \
-                    annotation_title=annotation_title, annotation_path=self.annotation_path, \
-                            associated_image=self.associated_image, points=points)
+                                    annotation_title=annotation_title, \
+                                    annotation_path=self.annotation_path, \
+                                    associated_image=self.associated_image, \
+                                    points=points)
 
             annotations.append(annotation)
 
@@ -112,7 +122,8 @@ class ImageAnnotationList:
 
 class Annotation:
     def __init__(self,annotation_id=None, annotation_title=None,annotation_path=None, associated_image=None, points=[]):
-        # cuando termine de armar esto, deberia dejar como obligatorios todos los campos
+        # cuando termine de armar esto, deberia dejar como obligatorios 
+        # todos los campos
         self.annotation_id = annotation_id
         self.annotation_title = annotation_title
         self.annotation_path = annotation_path
@@ -142,14 +153,16 @@ class Annotation:
 
     def get_mask_area(self):
         # TODO
-        # te retorna el numero de pixeles contenidos en el area. Por ahora incluye el borde, aunque quizas no deberia hacerlo.
+        # Te retorna el numero de pixeles contenidos en el area. 
+        # Por ahora incluye el borde, aunque quizas no deberia hacerlo.
         # no se para que me puede servir, pero igual
 
         return
 
     def is_inside_region(self,tile):
         # TODO
-        # esta funcion dice si el tile esta o no adentro de la region, a partir de las coordenadas de cada una
+        # Esta funcion dice si el tile esta o no adentro de la region, 
+        # a partir de las coordenadas de cada una
         return
 
 
@@ -162,17 +175,21 @@ class Point:
         return 'x: ' + str(self.coord[0]) + ', y: ' + str(self.coord[1])
 
 
-# TODO: Crear una nueva clase "AnnotationPoint" que herede la clase "Point" y agregue dos cosas:
-#       -  funcion "point_from_physical_to_pixels", que no tiene que estar afuera ya que solo la ocupa esta clase
-#       -  numero de punto: esto es importante ya que los puntos tienen que seguir un orden, igual que los juegos de connect the dots.
+# TODO: Crear una nueva clase "AnnotationPoint" que herede la clase "Point"
+# y agregue dos cosas:
+#       -  funcion "point_from_physical_to_pixels", que no tiene que estar 
+#          afuera ya que solo la ocupa esta clase
+#       -  numero de punto: esto es importante ya que los puntos tienen que 
+#          seguir un orden, igual que los juegos de connect the dots.
+# 
 # Pendiente arreglar el resto del codigo acorde a este cambio.
 # PRIORITY: Low.
 
 
 def point_from_physical_to_pixels(point_obj, image_prop_obj=None):
         '''
-         funcion para pasar los puntos desde coordenadas fisicas tomando el escaneo completo 
-         a pixeles de la imagen de interes.
+         funcion para pasar los puntos desde coordenadas fisicas tomando el 
+         escaneo completo a pixeles de la imagen de interes.
 
          input: 
          -  punto (tupla x,y)
