@@ -1,5 +1,5 @@
 import sys
-# sys.path.append('C:/Users/felipe/openslide-win64-20171122/bin')
+# sys.path.append('D:/felipe/software_projects/epi_seg/openslide/openslide-win64-20171122/bin')
 
 import xml.etree.ElementTree as ET
 import openslide

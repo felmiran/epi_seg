@@ -1,0 +1,12 @@
+dependencies:
+ - python=3.5
+ - anaconda
+ - numpy
+ - pillow
+ - tensorflow
+ - matplotlib
+ - scikit-learn
+ - pip
+ - pip:
+    - openslide-python
+    - opencv-python
