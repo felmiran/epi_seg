@@ -11,5 +11,5 @@ cuDNN version: 7.4.1 for CUDA 10
 Installing dependencies (windows 10):
 - install anaconda 
 - install gitbash
-- (in root directory of script) 
+- (in root directory of script) run setup.sh
 
