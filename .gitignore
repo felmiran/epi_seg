@@ -1,5 +1,7 @@
 *.pyc
 *.pyo
+*.json
 
 __pycache__/
 .vscode/
+notebooks/
