@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw
 import numpy as np
 
 
-class NDPImage():
+class NDPImage:
 
     '''
     Corresponds to ndpi image object
@@ -17,13 +17,17 @@ class NDPImage():
 
     def __init__(self, image_path):
         self.image_path = image_path
+        self.slide = self.create_slide()
         self.offset_x, self.offset_y, self.mpp_x, \
             self.mpp_y, self.width_lvl_0, \
             self.height_lvl_0 = self._get_image_parameters()
-
+        
+    def split_path(self):
+        return os.path.split(self.image_path)
+    
     def create_slide(self):
         owd = os.getcwd()
-        path, filename = os.path.split(self.image_path)
+        path, filename = self.split_path()
         os.chdir(path)
         slide = OpenSlide(filename)
         os.chdir(owd)
@@ -32,36 +36,40 @@ class NDPImage():
     def _get_image_parameters(self):
 
         '''
-        esta funcion tiene que retornar los siguientes datos:
-        -  hamamatsu.XOffsetFromSlideCentre:
-        -  hamamatsu.YOffsetFromSlideCentre:
-        -  openslide.mpp-x:
-        -  openslide.mpp-y:
-        -  openslide.level[0].width: image width in its max
-            resolution level (usually x40)
-        -  openslide.level[0].height: image height in its max
-            resolution level (usually x40)
+            esta funcion tiene que retornar los siguientes datos:
+            -  hamamatsu.XOffsetFromSlideCentre:
+            -  hamamatsu.YOffsetFromSlideCentre:
+            -  openslide.mpp-x:
+            -  openslide.mpp-y:
+            -  openslide.level[0].width: image width in its max
+                resolution level (usually x40)
+            -  openslide.level[0].height: image height in its max
+                resolution level (usually x40)
         '''
 
-        slide = self.create_slide()
-        offset_x = float(slide.properties['hamamatsu.XOffsetFromSlideCentre'])
-        offset_y = float(slide.properties['hamamatsu.YOffsetFromSlideCentre'])
-        mpp_x = float(slide.properties['openslide.mpp-x'])
-        mpp_y = float(slide.properties['openslide.mpp-y'])
-        width_lvl_0 = int(slide.properties['openslide.level[0].width'])
-        height_lvl_0 = int(slide.properties['openslide.level[0].height'])
+        offset_x = float(self.slide.properties['hamamatsu.XOffsetFromSlideCentre'])
+        offset_y = float(self.slide.properties['hamamatsu.YOffsetFromSlideCentre'])
+        mpp_x = float(self.slide.properties['openslide.mpp-x'])
+        mpp_y = float(self.slide.properties['openslide.mpp-y'])
+        width_lvl_0 = int(self.slide.properties['openslide.level[0].width'])
+        height_lvl_0 = int(self.slide.properties['openslide.level[0].height'])
         return offset_x, offset_y, mpp_x, mpp_y, width_lvl_0, height_lvl_0
 
     def print_image_parameters(self):
-        slide = self.create_slide()
-        for i in slide:
-            print(i + slide[i])
+        for i in self.slide:
+            print(i + self.slide[i])
         return
+
+    def get_mask():
+        pass
+
+    def split_image_and_annotation():
+        pass
 
 
 class ImageAnnotationList:
     '''
-        Esta clase es el set de anotaciones de una imagen 
+        Esta clase es el set de anotaciones de una imagen
         (esta imagen esta representada por el filename)
     '''
     def __init__(self, associated_image, annotation_path):
@@ -169,20 +177,23 @@ class Annotation:
 
         return
 
-    def is_inside_region(self,tile):
+    def is_inside_region(self, tile):
         # TODO
         # Esta funcion dice si el tile esta o no adentro de la region, 
         # a partir de las coordenadas de cada una
         return
 
 
-
 class Point:
-    def __init__(self,x, y):
-        self.coord = (x,y)
+    def __init__(self, x, y):
+        self.coord = (x, y)
 
     def __str__(self):
         return 'x: ' + str(self.coord[0]) + ', y: ' + str(self.coord[1])
+
+
+class NDPAnnotationPoint(Point):
+    pass
 
 
 # TODO: Crear una nueva clase "AnnotationPoint" que herede la clase "Point"
