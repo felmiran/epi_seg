@@ -7,12 +7,19 @@ import tensorflow as tf
 from tensorflow.keras import metrics
 import PIL
 import os
+from time import time
+
 
 def save_mask_as_img(numpy_array, filename):
     im = PIL.Image.fromarray(np.uint8(numpy_array*255))
     im.save(filename)
     return
 
+# TODO:
+# Class Image:
+# - properties
+# - image
+# - annotations
 
 
 '''
@@ -20,7 +27,6 @@ def save_mask_as_img(numpy_array, filename):
     - Para todas las imagenes que se utilizan, el tamaño de los pixeles debe ser igual o casi igual (misma resolución)
 
 '''
-
 
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
@@ -66,8 +72,13 @@ print(imagen._get_image_parameters())
 print("mask.shape")
 print(mask.shape)
 
+t0 = time()
+print("t0: {}".format(t0))
 im1 = cv2.imread(img_name_1)
 im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2HSV)
+
+t1 = t0 - time()
+print("t1: {}".format(t1))
  
 ##########
 # im1_height = round(im1.shape[0] * scale)
@@ -77,6 +88,9 @@ im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2HSV)
 
 im2 = cv2.imread(img_name_2)
 im2 = cv2.cvtColor(im2, cv2.COLOR_BGR2HSV)
+
+t2 = t1 - time()
+print("t2: {}".format(t2))
 
 ##########
 # im2_height = round(im2.shape[0] * scale)
@@ -105,6 +119,9 @@ validation_X = np.zeros((tile_num_expected, tile_side, tile_side, 3)) # = []
                                              # para generalizar hay que usar los image_height y width de la imagen.
 
 
+t3 = t2 - time()
+print("t3: {}".format(t3))
+
 i=0
 for ver in range(0,round(image_height/tile_side - 1)): # al restar 1 a image_height/tile_side, nos aseguramos de que si queda un pedazo de la imagen 
                                                        # estamos haciendo que no se cuenten los pixeles del borde inferior y derecho, en caso de que
@@ -125,6 +142,10 @@ for ver in range(0,round(image_height/tile_side - 1)): # al restar 1 a image_hei
         X[i] = im1[tile_side * ver : tile_side * (ver + 1), tile_side * hor : tile_side * (hor + 1),:] / 255
         validation_X[i] = im2[tile_side * ver : tile_side * (ver + 1), tile_side * hor : tile_side * (hor + 1),:] / 255
         i+=1
+
+
+t4 = t3 - time()
+print("t4: {}".format(t4))
 
 
 print("valor de i: " + str(i))
@@ -156,6 +177,9 @@ print('validation_X[1].shape' + str(validation_X[1].shape))
 print("marca 1")
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=21)
 print("marca 2")
+
+t5 = t4 - time()
+print("t5: {}".format(t5))
 
 
 # print(X_train[3000].shape)

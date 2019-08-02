@@ -1,6 +1,8 @@
 *.pyc
 *.pyo
 *.json
+*.ndpi
+*.ndpa
 
 __pycache__/
 .vscode/

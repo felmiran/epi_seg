@@ -79,7 +79,7 @@ class ImageAnnotationList:
                    la anotacion
                 -  points: la lista con las tuplas de puntos para la anotacion
         '''
-        
+        # TODO> reemplazar los loops
         annotations = []
 
         ndpa = open(self.annotation_path)
