@@ -28,13 +28,13 @@ def save_mask_as_img(numpy_array, filename):
 
 '''
 
-
+os.chdir('D:/felipe/ndpi/')
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 image_dir = 'D:/felipe/ndpi/'
 
 
-image_path = image_dir + 'prueba2.ndpi' 
+filename = 'prueba2.ndpi' 
 annotation_path = image_dir + "prueba2.ndpi.ndpa"
 
 img_name_1 = image_dir + "prueba2_x40_z0_half_1.tif" # imagen para entrenamiento
@@ -49,7 +49,7 @@ result_name = 'results_prueba2_half2_tile{}_v20190509'.format(tile_side) # nombr
 
 
 # se obtiene la anotacion de intetres
-imagen = NDPImage(image_path)
+imagen = NDPImage(filename)
 annotationList = ImageAnnotationList(associated_image=imagen, annotation_path=annotation_path)
 annotations = annotationList.annotation_list
 annotation_prueba = annotations[0]

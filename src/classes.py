@@ -8,30 +8,18 @@ from PIL import Image, ImageDraw
 import numpy as np
 
 
-class NDPImage:
+class NDPImage(OpenSlide):
 
     '''
     Corresponds to ndpi image object
-    image_path: path + filename. e.g. c:/project/images/example_image.ndpi
     '''
 
-    def __init__(self, image_path):
-        self.image_path = image_path
-        self.slide = self.create_slide()
+    def __init__(self, filename):
+        super().__init__(filename)
+        self.filename = filename
         self.offset_x, self.offset_y, self.mpp_x, \
             self.mpp_y, self.width_lvl_0, \
             self.height_lvl_0 = self._get_image_parameters()
-        
-    def split_path(self):
-        return os.path.split(self.image_path)
-    
-    def create_slide(self):
-        owd = os.getcwd()
-        path, filename = self.split_path()
-        os.chdir(path)
-        slide = OpenSlide(filename)
-        os.chdir(owd)
-        return slide
 
     def _get_image_parameters(self):
 
@@ -47,23 +35,23 @@ class NDPImage:
                 resolution level (usually x40)
         '''
 
-        offset_x = float(self.slide.properties['hamamatsu.XOffsetFromSlideCentre'])
-        offset_y = float(self.slide.properties['hamamatsu.YOffsetFromSlideCentre'])
-        mpp_x = float(self.slide.properties['openslide.mpp-x'])
-        mpp_y = float(self.slide.properties['openslide.mpp-y'])
-        width_lvl_0 = int(self.slide.properties['openslide.level[0].width'])
-        height_lvl_0 = int(self.slide.properties['openslide.level[0].height'])
+        offset_x = float(self.properties['hamamatsu.XOffsetFromSlideCentre'])
+        offset_y = float(self.properties['hamamatsu.YOffsetFromSlideCentre'])
+        mpp_x = float(self.properties['openslide.mpp-x'])
+        mpp_y = float(self.properties['openslide.mpp-y'])
+        width_lvl_0 = int(self.properties['openslide.level[0].width'])
+        height_lvl_0 = int(self.properties['openslide.level[0].height'])
         return offset_x, offset_y, mpp_x, mpp_y, width_lvl_0, height_lvl_0
 
     def print_image_parameters(self):
-        for i in self.slide:
-            print(i + self.slide[i])
+        for i in self.properties:
+            print(i + ": " + self.properties[i])
         return
 
     def get_mask():
         pass
 
-    def split_image_and_annotation():
+    def split_image():
         pass
 
 
@@ -152,6 +140,7 @@ class Annotation:
         return len(self.points)
 
     def get_mask(self):
+
         '''
             Retorna una mascara de la imagen completa, con la region de la
             anotacion marcada en 1s y el resto en 0s.
