@@ -1,4 +1,4 @@
-import classes
+from classes import NDPImage, ImageAnnotationList
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
@@ -49,8 +49,8 @@ result_name = 'results_prueba2_half2_tile{}_v20190509'.format(tile_side) # nombr
 
 
 # se obtiene la anotacion de intetres
-imagen = classes.ImageProperties(image_path)
-annotationList = classes.ImageAnnotationList(associated_image=imagen, annotation_path=annotation_path)
+imagen = NDPImage(image_path)
+annotationList = ImageAnnotationList(associated_image=imagen, annotation_path=annotation_path)
 annotations = annotationList.annotation_list
 annotation_prueba = annotations[0]
 

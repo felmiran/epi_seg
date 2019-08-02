@@ -2,51 +2,61 @@ import sys
 # sys.path.append('D:/felipe/software_projects/epi_seg/openslide/openslide-win64-20171122/bin')
 
 import xml.etree.ElementTree as ET
-import openslide
+from openslide import OpenSlide
 import os
 from PIL import Image, ImageDraw
 import numpy as np
 
 
-class ImageProperties:
-    def __init__(self,image_path):
+class NDPImage():
+
+    '''
+    Corresponds to ndpi image object
+    image_path: path + filename. e.g. c:/project/images/example_image.ndpi
+    '''
+
+    def __init__(self, image_path):
         self.image_path = image_path
         self.offset_x, self.offset_y, self.mpp_x, \
             self.mpp_y, self.width_lvl_0, \
-                self.height_lvl_0 = self._get_image_parameters()
+            self.height_lvl_0 = self._get_image_parameters()
+
+    def create_slide(self):
+        owd = os.getcwd()
+        path, filename = os.path.split(self.image_path)
+        os.chdir(path)
+        slide = OpenSlide(filename)
+        os.chdir(owd)
+        return slide
 
     def _get_image_parameters(self):
-         '''
-          esta funcion tiene que retornar los siguientes datos:
-          -  hamamatsu.XOffsetFromSlideCentre: 
-          -  hamamatsu.YOffsetFromSlideCentre: 
-          -  openslide.mpp-x: 
-          -  openslide.mpp-y: 
-          -  openslide.level[0].width: image width in its max 
-             resolution level (usually x40)
-          -  openslide.level[0].height: image height in its max 
-             resolution level (usually x40)
 
+        '''
+        esta funcion tiene que retornar los siguientes datos:
+        -  hamamatsu.XOffsetFromSlideCentre:
+        -  hamamatsu.YOffsetFromSlideCentre:
+        -  openslide.mpp-x:
+        -  openslide.mpp-y:
+        -  openslide.level[0].width: image width in its max
+            resolution level (usually x40)
+        -  openslide.level[0].height: image height in its max
+            resolution level (usually x40)
+        '''
 
-            ESTO QUIZAS PODRIA SER UNA FUNCION NO MAS... 
-            NO NECESITA SER UNA CLASE EN REALIDAD
+        slide = self.create_slide()
+        offset_x = float(slide.properties['hamamatsu.XOffsetFromSlideCentre'])
+        offset_y = float(slide.properties['hamamatsu.YOffsetFromSlideCentre'])
+        mpp_x = float(slide.properties['openslide.mpp-x'])
+        mpp_y = float(slide.properties['openslide.mpp-y'])
+        width_lvl_0 = int(slide.properties['openslide.level[0].width'])
+        height_lvl_0 = int(slide.properties['openslide.level[0].height'])
+        return offset_x, offset_y, mpp_x, mpp_y, width_lvl_0, height_lvl_0
 
-         '''
-
-         path, filename = os.path.split(self.image_path)
-
-         os.chdir(path)
-
-         slide = openslide.OpenSlide(filename)
-
-         offset_x = float(slide.properties['hamamatsu.XOffsetFromSlideCentre'])
-         offset_y = float(slide.properties['hamamatsu.YOffsetFromSlideCentre'])
-         mpp_x = float(slide.properties['openslide.mpp-x'])
-         mpp_y = float(slide.properties['openslide.mpp-y'])
-         width_lvl_0 = int(slide.properties['openslide.level[0].width'])
-         height_lvl_0 = int(slide.properties['openslide.level[0].height'])
-
-         return offset_x, offset_y, mpp_x, mpp_y, width_lvl_0, height_lvl_0
+    def print_image_parameters(self):
+        slide = self.create_slide()
+        for i in slide:
+            print(i + slide[i])
+        return
 
 
 class ImageAnnotationList:
@@ -95,15 +105,15 @@ class ImageAnnotationList:
             for p in pointlist.findall('point'):
                 point_x = float(p.find('x').text)
                 point_y = float(p.find('y').text)
-                point = Point(point_x,point_y)
+                point = Point(point_x, point_y)
 
-                points.append(point_from_physical_to_pixels(point_obj=point, \
-                    image_prop_obj=self.associated_image))
+                points.append(point_from_physical_to_pixels(point_obj=point,
+                              image_prop_obj=self.associated_image))
 
-            annotation = Annotation(annotation_id=annotation_id, \
-                                    annotation_title=annotation_title, \
-                                    annotation_path=self.annotation_path, \
-                                    associated_image=self.associated_image, \
+            annotation = Annotation(annotation_id=annotation_id,
+                                    annotation_title=annotation_title,
+                                    annotation_path=self.annotation_path,
+                                    associated_image=self.associated_image,
                                     points=points)
 
             annotations.append(annotation)
@@ -119,24 +129,24 @@ class ImageAnnotationList:
         return
 
 
-
 class Annotation:
-    def __init__(self,annotation_id=None, annotation_title=None,annotation_path=None, associated_image=None, points=[]):
-        # cuando termine de armar esto, deberia dejar como obligatorios 
+    def __init__(self, annotation_id=None, annotation_title=None,
+                 annotation_path=None, associated_image=None, points=[]):
+        # cuando termine de armar esto, deberia dejar como obligatorios
         # todos los campos
         self.annotation_id = annotation_id
         self.annotation_title = annotation_title
         self.annotation_path = annotation_path
         self.associated_image = associated_image
         self.points = points
-        
+
     def count_points(self):
         return len(self.points)
 
     def get_mask(self):
         '''
-            Retorna una mascara de la imagen completa, con la region de la 
-            anotacion marcada en 1s y el resto en 0s. 
+            Retorna una mascara de la imagen completa, con la region de la
+            anotacion marcada en 1s y el resto en 0s.
             output:
                 - np.array con mascara
         '''

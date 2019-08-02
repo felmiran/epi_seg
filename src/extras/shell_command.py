@@ -1,8 +1,7 @@
 from subprocess import call
 import os
 
-os.chdir("D:/felipe/ndpi")
-
+os.chdir("D:/felipe/software_projects/epi_seg/src")
 
 # este es un ejemplo de script para cortar una imagen
 # "ndpisplit -Ex40,z0,3600,13000,5000,5000,muestra_1 prueba1.ndpi"
@@ -58,13 +57,13 @@ def extract_region_from_ndpi(magnification, zlevel, x, y, width, height, label,
     return
 
 
-magnification = "x40"
+magnification = "x10"
 zlevel = "z0"
 x = 0
 y = 0
-width = 15000  # original is 28672
+width = round(28672/2)  # original is 28672
 height = 17152
-label = "full"
+label = "half"
 ndpi_path = "prueba2.ndpi"
 has_parameters = True
 
