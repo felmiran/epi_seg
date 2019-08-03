@@ -13,3 +13,6 @@ Installing dependencies (windows 10):
 - install gitbash
 - (in root directory of script) run setup.sh
 
+
+Openslide is used for handling of NDP images and annotations. These can be downloaded in https://openslide.org/download/. This project uses the 64-bit windows binary from 2017-11-22. Add bin to path and you are done.
+

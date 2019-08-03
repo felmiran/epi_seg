@@ -11,7 +11,7 @@ import numpy as np
 class NDPImage(OpenSlide):
 
     '''
-    Corresponds to ndpi image object
+    Corresponds to ndpi image object.
     '''
 
     def __init__(self, filename):
@@ -19,12 +19,14 @@ class NDPImage(OpenSlide):
         self.filename = filename
         self.offset_x, self.offset_y, self.mpp_x, \
             self.mpp_y, self.width_lvl_0, \
-            self.height_lvl_0 = self._get_image_parameters()
+            self.height_lvl_0 = self._get_image_properties()
 
-    def _get_image_parameters(self):
+    def _get_image_properties(self):
 
         '''
-            esta funcion tiene que retornar los siguientes datos:
+            Returns prooperties that are useful for constructing annotations
+            from NDPA files:
+
             -  hamamatsu.XOffsetFromSlideCentre:
             -  hamamatsu.YOffsetFromSlideCentre:
             -  openslide.mpp-x:
@@ -43,16 +45,14 @@ class NDPImage(OpenSlide):
         height_lvl_0 = int(self.properties['openslide.level[0].height'])
         return offset_x, offset_y, mpp_x, mpp_y, width_lvl_0, height_lvl_0
 
-    def print_image_parameters(self):
+    def print_image_properties(self):
+
+        '''
+        Utility method to view all NDPI properties
+        '''
         for i in self.properties:
             print(i + ": " + self.properties[i])
         return
-
-    def get_mask():
-        pass
-
-    def split_image():
-        pass
 
 
 class ImageAnnotationList:
@@ -63,34 +63,37 @@ class ImageAnnotationList:
     def __init__(self, ndp_image, annotation_path):
         self.ndp_image = ndp_image
         self.annotation_path = annotation_path
-        self.annotation_list = self.create_annotations()
+        self.annotation_list = self._create_annotations()
 
-    def create_annotations(self):
+    def _create_annotations(self):
 
         '''
-         funcion para crear las anotaciones con su id, path, image_path y 
+         funcion para crear las anotaciones con su id, path, image_path y
          puntos.
 
+         Creates a list of annotations for the NDPI.
+
          input:
-         -  image properties object
-         -  annotation_path
+         -  ndp_image: the NDPI corresponding to the annotations
+         -  annotation_path: path for the NDPA file
 
          returns:
-         -  lista de annotation objects, cada una de las cuales contiene:
-                -  annotation_id: el id de la anotacion para esta imagen 
-                -  annotation_title: el titulo (epithelium u otro)
-                -  annotation_path: el path del archivo del que se saco la 
+         -  List of annotation objects containing:
+                -  annotation_id: as described in the NDPA file
+                -  annotation_title: as described in the NDPA file
+                -  annotation_path: el path del archivo del que se saco la
                    anotacion
-                -  image_path: ubicacion de la imagen a la que esta asociada 
+                -  image_path: ubicacion de la imagen a la que esta asociada
                    la anotacion
                 -  points: la lista con las tuplas de puntos para la anotacion
         '''
+
         # TODO> reemplazar los loops
         annotations = []
 
         ndpa = open(self.annotation_path)
         tree = ET.parse(ndpa)
-        
+
         for ndpviewstate in tree.findall('ndpviewstate'):
 
             annotation_title = ndpviewstate.find('title').text
@@ -185,6 +188,9 @@ class Annotation:
         # pendiente: hacer un try except, que depende de si esta o no generada la mask
         return
 
+    def extract_region(self):
+        
+
 
 class Point:
     def __init__(self, x, y):
@@ -236,84 +242,11 @@ class NDPAnnotationPoint(Point):
         return (round(x), round(y))
 
 
-# TODO: Crear una nueva clase "AnnotationPoint" que herede la clase "Point"
-# y agregue dos cosas:
-#       -  funcion "point_from_physical_to_pixels", que no tiene que estar 
-#          afuera ya que solo la ocupa esta clase
-#       -  numero de punto: esto es importante ya que los puntos tienen que 
-#          seguir un orden, igual que los juegos de connect the dots.
-# 
-# Pendiente arreglar el resto del codigo acorde a este cambio.
-# PRIORITY: Low.
-
-
 def save_mask_as_img(numpy_array, filename):
     im = Image.fromarray(np.uint8(numpy_array*255))
     im.save(filename)
     return
 
-
-
-
-
-
-# annotation_path = "D:/felipe/ndpi/prueba1.ndpi.ndpa"
-# image_path = 'D:/felipe/ndpi/prueba1.ndpi' 
-# imagen = ImageProperties(image_path)
-# print('offset_x, offset_y, mpp_x, mpp_y, width_lvl_0, height_lvl_0')
-# print(imagen._get_image_parameters())
-# print('--------------------------------------------------')
-
-
-# annotations = create_annotations(image_prop_obj=imagen, annotation_path=annotation_path)
-
-# i = 2
-# print(annotations[i].points)
-# print(annotations[i].annotation_title)
-# print(annotations[i].annotation_path)
-# print(annotations[i].image_path)
-# print(annotations[i].count_points())
-# print('--------------------------------------------------')
-
-
-# max_x = 0
-# min_x = 10000000000000
-
-# max_y = 0
-# min_y = 10000000000000
-# for i in annotations[i].points:
-#     max_x = max(max_x,i[0])
-#     min_x = min(min_x,i[0])
-
-#     max_y = max(max_y,i[1])
-#     min_y = min(min_y,i[1])
-
-# print('max x: {}, min x: {}, max y: {}, min y: {}'.format(max_x, min_x, max_y, min_y))
-
-
-# ////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-# annotation_id = None
-# annotation_path = None
-
-# if (annotation_id != None and annotation_path != None):
-#     print("OK")
-
-# puntos = []
-
-# p1 = Point(1,2)
-# p2 = Point(3,4)
-# p3 = Point(5,6)
-
-# puntos.append(p1.coord)
-# puntos.append(p2.coord)
-# puntos.append(p3.coord)
-
-# print(puntos)
-# print(len(puntos))
-
-
-
-
-
+# TODO
+def split_ndp_image(ndp_image, kjhalkdjgha):
+    pass
