@@ -60,8 +60,8 @@ class ImageAnnotationList:
         Esta clase es el set de anotaciones de una imagen
         (esta imagen esta representada por el filename)
     '''
-    def __init__(self, associated_image, annotation_path):
-        self.associated_image = associated_image
+    def __init__(self, ndp_image, annotation_path):
+        self.ndp_image = ndp_image
         self.annotation_path = annotation_path
         self.annotation_list = self.create_annotations()
 
@@ -101,15 +101,14 @@ class ImageAnnotationList:
             for p in pointlist.findall('point'):
                 point_x = float(p.find('x').text)
                 point_y = float(p.find('y').text)
-                point = Point(point_x, point_y)
+                point = NDPAnnotationPoint(point_x, point_y, self.ndp_image)
 
-                points.append(point_from_physical_to_pixels(point_obj=point,
-                              image_prop_obj=self.associated_image))
+                points.append(point.point_from_physical_to_pixels())
 
             annotation = Annotation(annotation_id=annotation_id,
                                     annotation_title=annotation_title,
                                     annotation_path=self.annotation_path,
-                                    associated_image=self.associated_image,
+                                    ndp_image=self.ndp_image,
                                     points=points)
 
             annotations.append(annotation)
@@ -127,13 +126,13 @@ class ImageAnnotationList:
 
 class Annotation:
     def __init__(self, annotation_id=None, annotation_title=None,
-                 annotation_path=None, associated_image=None, points=[]):
+                 annotation_path=None, ndp_image=None, points=[]):
         # cuando termine de armar esto, deberia dejar como obligatorios
         # todos los campos
         self.annotation_id = annotation_id
         self.annotation_title = annotation_title
         self.annotation_path = annotation_path
-        self.associated_image = associated_image
+        self.ndp_image = ndp_image
         self.points = points
 
     def count_points(self):
@@ -149,8 +148,8 @@ class Annotation:
         '''
 
         polygon = self.points
-        width = self.associated_image.width_lvl_0
-        height = self.associated_image.height_lvl_0
+        width = self.ndp_image.width_lvl_0
+        height = self.ndp_image.height_lvl_0
 
         img = Image.new('L', (width, height), 0)
         ImageDraw.Draw(img).polygon(polygon, outline=0, fill=1)
@@ -162,14 +161,28 @@ class Annotation:
         # TODO
         # Te retorna el numero de pixeles contenidos en el area. 
         # Por ahora incluye el borde, aunque quizas no deberia hacerlo.
-        # no se para que me puede servir, pero igual
+        # no se para que me puede servir, pero igual.
+        # pendiente: hacer un try except, que depende de si esta o no generada la mask
+
+        try:
+            pass
+        except expression as identifier:
+            pass
 
         return
 
-    def is_inside_region(self, tile):
+    def is_inside_region(self, square_top_left_corner, square_height,
+                         square_width):
         # TODO
+
+        '''
+        Returns True if a square section is inside of the annotated region
+        '''
+
         # Esta funcion dice si el tile esta o no adentro de la region, 
         # a partir de las coordenadas de cada una
+
+        # pendiente: hacer un try except, que depende de si esta o no generada la mask
         return
 
 
@@ -182,21 +195,11 @@ class Point:
 
 
 class NDPAnnotationPoint(Point):
-    pass
+    def __init__(self, x, y, ndp_image):
+        super().__init__(x, y)
+        self.ndp_image = ndp_image
 
-
-# TODO: Crear una nueva clase "AnnotationPoint" que herede la clase "Point"
-# y agregue dos cosas:
-#       -  funcion "point_from_physical_to_pixels", que no tiene que estar 
-#          afuera ya que solo la ocupa esta clase
-#       -  numero de punto: esto es importante ya que los puntos tienen que 
-#          seguir un orden, igual que los juegos de connect the dots.
-# 
-# Pendiente arreglar el resto del codigo acorde a este cambio.
-# PRIORITY: Low.
-
-
-def point_from_physical_to_pixels(point_obj, image_prop_obj=None):
+    def point_from_physical_to_pixels(self):
         '''
          funcion para pasar los puntos desde coordenadas fisicas tomando el 
          escaneo completo a pixeles de la imagen de interes.
@@ -215,21 +218,33 @@ def point_from_physical_to_pixels(point_obj, image_prop_obj=None):
          -  tupla en pixeles
         '''
 
-        # coordenada del punto (0,0) de la imagen de interes, tomando como eje de referencia 
+        image_prop_obj = self.ndp_image
+
+        # coordenada del punto (0,0) de la imagen de interes, tomando como eje de referencia
         # el centro de la slide completa. se pasa la coordenada de nm a pixel
         slide_center_x = image_prop_obj.offset_x / (image_prop_obj.mpp_x * 1000)
         slide_center_y = image_prop_obj.offset_y / (image_prop_obj.mpp_y * 1000)
         
         x_0 = slide_center_x - image_prop_obj.width_lvl_0 / 2
-        y_0 = slide_center_y  - image_prop_obj.height_lvl_0 / 2
+        y_0 = slide_center_y - image_prop_obj.height_lvl_0 / 2
 
         # al restar las coordenadas del punto de interes con las del punto (0,0) de la imagen, 
         # se obtiene la coordenada del punto de interes respecto al eje (0,0)
-        x = point_obj.coord[0] / (image_prop_obj.mpp_x * 1000) - x_0
-        y = point_obj.coord[1] / (image_prop_obj.mpp_y * 1000) - y_0
+        x = self.coord[0] / (image_prop_obj.mpp_x * 1000) - x_0
+        y = self.coord[1] / (image_prop_obj.mpp_y * 1000) - y_0
 
-        return (round(x),round(y))
+        return (round(x), round(y))
 
+
+# TODO: Crear una nueva clase "AnnotationPoint" que herede la clase "Point"
+# y agregue dos cosas:
+#       -  funcion "point_from_physical_to_pixels", que no tiene que estar 
+#          afuera ya que solo la ocupa esta clase
+#       -  numero de punto: esto es importante ya que los puntos tienen que 
+#          seguir un orden, igual que los juegos de connect the dots.
+# 
+# Pendiente arreglar el resto del codigo acorde a este cambio.
+# PRIORITY: Low.
 
 
 def save_mask_as_img(numpy_array, filename):

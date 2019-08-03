@@ -8,6 +8,7 @@ from tensorflow.keras import metrics
 import PIL
 import os
 from time import time
+import gc
 
 
 def save_mask_as_img(numpy_array, filename):
@@ -50,7 +51,7 @@ result_name = 'results_prueba2_half2_tile{}_v20190509'.format(tile_side) # nombr
 
 # se obtiene la anotacion de intetres
 imagen = NDPImage(filename)
-annotationList = ImageAnnotationList(associated_image=imagen, annotation_path=annotation_path)
+annotationList = ImageAnnotationList(ndp_image=imagen, annotation_path=annotation_path)
 annotations = annotationList.annotation_list
 annotation_prueba = annotations[0]
 
@@ -129,19 +130,23 @@ for ver in range(0,round(image_height/tile_side - 1)): # al restar 1 a image_hei
                                                        # round(image_height/tile_side - 1) arroja 3, por lo que el último pixel no se pesca.
                                                        # lo mismo para image width
     for hor in range(0,round(image_width/tile_side - 1)):
-        if np.sum(mask[tile_side * ver : tile_side * (ver + 1), tile_side * hor : tile_side * (hor + 1)]) == tile_side**2:
+        if np.sum(mask[(tile_side*ver):(tile_side*(ver+1)), (tile_side*hor):(tile_side*(hor+1))]) == tile_side**2:
             y.append(1)
         else:
             y.append(0)
-        
+
         '''
         # X.append(im1[tile_side * ver : tile_side * (ver + 1), tile_side * hor : tile_side * (hor + 1),:] / 255)
         # validation_X.append(im2[tile_side * ver : tile_side * (ver + 1), tile_side * hor : tile_side * (hor + 1),:] / 255)
         '''
-        
+
         X[i] = im1[tile_side * ver : tile_side * (ver + 1), tile_side * hor : tile_side * (hor + 1),:] / 255
         validation_X[i] = im2[tile_side * ver : tile_side * (ver + 1), tile_side * hor : tile_side * (hor + 1),:] / 255
         i+=1
+
+        gc.collect()
+
+
 
 
 t4 = t3 - time()
