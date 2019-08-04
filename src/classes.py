@@ -6,6 +6,8 @@ from openslide import OpenSlide
 import os
 from PIL import Image, ImageDraw
 import numpy as np
+import matplotlib.pyplot as plt
+from functools import reduce
 
 
 class NDPImage(OpenSlide):
@@ -118,13 +120,28 @@ class ImageAnnotationList:
 
         return annotations
 
-
-    def merge_annotations(self):
+    def merge_annotations(self, draw_mask=False):
         '''
-            funcion para mergear las anotaciones por ID de anotacion 
+            funcion para mergear las anotaciones por ID de anotacion
             (quizas tambien seria bueno hacerlo por "title")
         '''
-        return
+
+        masks = [a.get_mask() for a in self.annotation_list]
+
+        # for a in masks:
+        #     plt.figure()
+        #     plt.imshow(a*255, aspect='auto')
+        #     plt.show()
+
+        merged_annotation = reduce(np.add, masks, 0)
+        merged_annotation[merged_annotation > 0] = 1
+
+        if draw_mask:
+            plt.figure()
+            plt.imshow(merged_annotation*255, aspect='auto')
+            plt.show()
+
+        return merged_annotation
 
 
 class Annotation:
@@ -141,7 +158,12 @@ class Annotation:
     def count_points(self):
         return len(self.points)
 
-    def get_mask(self):
+    def print_points(self):
+        for i in self.points:
+            print(i)
+        return
+
+    def get_mask(self, draw_mask=False):
 
         '''
             Retorna una mascara de la imagen completa, con la region de la
@@ -155,17 +177,26 @@ class Annotation:
         height = self.ndp_image.height_lvl_0
 
         img = Image.new('L', (width, height), 0)
+
         ImageDraw.Draw(img).polygon(polygon, outline=0, fill=1)
         mask = np.array(img)
+
+        if draw_mask:
+            plt.figure()
+            plt.imshow(mask*255, aspect='auto')
+            plt.show()
+
+        self.mask = mask
 
         return mask
 
     def get_mask_area(self):
         # TODO
-        # Te retorna el numero de pixeles contenidos en el area. 
+        # Te retorna el numero de pixeles contenidos en el area.
         # Por ahora incluye el borde, aunque quizas no deberia hacerlo.
         # no se para que me puede servir, pero igual.
-        # pendiente: hacer un try except, que depende de si esta o no generada la mask
+        # pendiente: hacer un try except, que depende de si esta o no generada
+        # la mask
 
         try:
             pass
@@ -182,14 +213,43 @@ class Annotation:
         Returns True if a square section is inside of the annotated region
         '''
 
-        # Esta funcion dice si el tile esta o no adentro de la region, 
+        # Esta funcion dice si el tile esta o no adentro de la region,
         # a partir de las coordenadas de cada una
 
-        # pendiente: hacer un try except, que depende de si esta o no generada la mask
+        # pendiente: hacer un try except, que depende de si esta o no
+        # generada la mask
         return
 
-    def extract_region(self):
-        
+    def extract_region(self, square_top_left_corner, square_height,
+                       square_width, draw_region=False):
+
+        '''
+        square_top_left_corner: (x,y) tuple
+        '''
+        region = []
+        try:
+            region = self.mask[square_top_left_corner[1]:
+                               square_top_left_corner[1]+square_height,
+                               square_top_left_corner[0]:
+                               square_top_left_corner[0]+square_width]
+
+            if draw_region:
+                plt.figure()
+                plt.imshow(region*255, aspect='auto')
+                plt.show()
+
+        except AttributeError:
+            print("The mask has not been created.\nPlease run the following:\n")
+            print("  <annotation>.get_mask()\n")
+
+        return region
+
+
+class MergedAnnotation(Annotation):
+    # TODO
+    # esta wea toma algunas funciones de una anotacion,
+    # pero no tiene los puntos ya que se construye directamente como una imagen
+    pass
 
 
 class Point:
@@ -207,7 +267,7 @@ class NDPAnnotationPoint(Point):
 
     def point_from_physical_to_pixels(self):
         '''
-         funcion para pasar los puntos desde coordenadas fisicas tomando el 
+         funcion para pasar los puntos desde coordenadas fisicas tomando el
          escaneo completo a pixeles de la imagen de interes.
 
          input: 

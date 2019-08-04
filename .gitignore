@@ -3,7 +3,11 @@
 *.json
 *.ndpi
 *.ndpa
+*.tif
 
 __pycache__/
 .vscode/
 notebooks/
+
+
+tests.py
