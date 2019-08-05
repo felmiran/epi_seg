@@ -244,7 +244,7 @@ plt.imshow(results, aspect='auto')
 plt.show()
 
 # np.save( result_name + '.npy', results)
-save_mask_as_img(results, image_dir + result_name + ".jpeg")
+save_mask_as_img(results*255, image_dir + result_name + ".jpeg")
 
 
 

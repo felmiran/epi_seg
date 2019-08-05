@@ -13,7 +13,7 @@ from functools import reduce
 class NDPImage(OpenSlide):
 
     '''
-    Corresponds to ndpi image object.
+    Ndpi image object.
     '''
 
     def __init__(self, filename):
@@ -48,10 +48,10 @@ class NDPImage(OpenSlide):
         return offset_x, offset_y, mpp_x, mpp_y, width_lvl_0, height_lvl_0
 
     def print_image_properties(self):
-
         '''
         Utility method to view all NDPI properties
         '''
+
         for i in self.properties:
             print(i + ": " + self.properties[i])
         return
@@ -62,6 +62,7 @@ class ImageAnnotationList:
         Esta clase es el set de anotaciones de una imagen
         (esta imagen esta representada por el filename)
     '''
+
     def __init__(self, ndp_image, annotation_path):
         self.ndp_image = ndp_image
         self.annotation_path = annotation_path
@@ -123,15 +124,9 @@ class ImageAnnotationList:
     def merge_annotations(self, draw_mask=False):
         '''
             funcion para mergear las anotaciones por ID de anotacion
-            (quizas tambien seria bueno hacerlo por "title")
         '''
 
         masks = [a.get_mask() for a in self.annotation_list]
-
-        # for a in masks:
-        #     plt.figure()
-        #     plt.imshow(a*255, aspect='auto')
-        #     plt.show()
 
         merged_annotation = reduce(np.add, masks, 0)
         merged_annotation[merged_annotation > 0] = 1
@@ -141,7 +136,14 @@ class ImageAnnotationList:
             plt.imshow(merged_annotation*255, aspect='auto')
             plt.show()
 
-        return merged_annotation
+        merged = Annotation(annotation_id="merged",
+                            annotation_title="merged",
+                            annotation_path=self.annotation_path,
+                            ndp_image=self.ndp_image)
+
+        merged.set_mask(merged_annotation)
+
+        return merged
 
 
 class Annotation:
@@ -190,6 +192,18 @@ class Annotation:
 
         return mask
 
+    def set_mask(self, mask):
+        if hasattr(self, "mask"):
+            print("Annotation already has a mask")
+        else:
+            self.mask = mask
+        return
+
+    def draw_mask(self):
+            plt.figure()
+            plt.imshow(self.mask*255, aspect='auto')
+            plt.show()
+
     def get_mask_area(self):
         # TODO
         # Te retorna el numero de pixeles contenidos en el area.
@@ -226,7 +240,6 @@ class Annotation:
         '''
         square_top_left_corner: (x,y) tuple
         '''
-        region = []
         try:
             region = self.mask[square_top_left_corner[1]:
                                square_top_left_corner[1]+square_height,
@@ -238,18 +251,15 @@ class Annotation:
                 plt.imshow(region*255, aspect='auto')
                 plt.show()
 
+            return region
+
         except AttributeError:
-            print("The mask has not been created.\nPlease run the following:\n")
-            print("  <annotation>.get_mask()\n")
-
-        return region
-
-
-class MergedAnnotation(Annotation):
-    # TODO
-    # esta wea toma algunas funciones de una anotacion,
-    # pero no tiene los puntos ya que se construye directamente como una imagen
-    pass
+            print("The mask has not been created.")
+            print("Please run the following:\n")
+            print("  <annotation>.get_mask() if mask" +
+                  " is created from points \n")
+            print("  <annotation>.set_mask() if mask" +
+                  " is loaded from np array \n")
 
 
 class Point:
@@ -303,7 +313,7 @@ class NDPAnnotationPoint(Point):
 
 
 def save_mask_as_img(numpy_array, filename):
-    im = Image.fromarray(np.uint8(numpy_array*255))
+    im = Image.fromarray(np.uint8(numpy_array))
     im.save(filename)
     return
 
