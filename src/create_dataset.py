@@ -144,7 +144,7 @@ for ver in range(0,round(image_height/tile_side - 1)): # al restar 1 a image_hei
         validation_X[i] = im2[tile_side * ver : tile_side * (ver + 1), tile_side * hor : tile_side * (hor + 1),:] / 255
         i+=1
 
-        gc.collect() # esta funcion es como un 'empty recycle bin' donde se borran los unreferenced objects
+        # gc.collect() # esta funcion es como un 'empty recycle bin' donde se borran los unreferenced objects
 
 
 

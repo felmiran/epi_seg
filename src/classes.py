@@ -307,6 +307,5 @@ def save_mask_as_img(numpy_array, filename):
     im.save(filename)
     return
 
-# TODO
-def split_ndp_image(ndp_image, kjhalkdjgha):
-    pass
+
+
