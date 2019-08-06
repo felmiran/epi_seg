@@ -45,7 +45,8 @@ def split_ndpa(image_annotation_list, height, width):
                                         square_height=height,
                                         square_width=width)
             filename = image_annotation_list.ndp_image.filename
-            filename = "mask_" + filename.replace(".ndpi", "") + "_w{}_h{}.tif".format(w*width, h*height)
+            extension = "_w{}_h{}.tif".format(w*width, h*height)
+            filename = "mask_" + filename.replace(".ndpi", "") + extension
             save_mask_as_img(reg, "../split/" + filename)
 
 

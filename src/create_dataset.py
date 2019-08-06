@@ -1,4 +1,4 @@
-from classes import NDPImage, ImageAnnotationList
+from classes import *
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
@@ -11,21 +11,10 @@ from time import time
 import gc
 
 
-def save_mask_as_img(numpy_array, filename):
-    im = PIL.Image.fromarray(np.uint8(numpy_array*255))
-    im.save(filename)
-    return
-
-# TODO:
-# Class Image:
-# - properties
-# - image
-# - annotations
-
-
 '''
     supestos:
-    - Para todas las imagenes que se utilizan, el tamaño de los pixeles debe ser igual o casi igual (misma resolución)
+    - Para todas las imagenes que se utilizan, el tamaño de los pixeles debe
+      ser igual o casi igual (misma resolución)
 
 '''
 
@@ -35,23 +24,20 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 image_dir = 'D:/felipe/ndpi/'
 
 
-filename = 'prueba2.ndpi' 
-annotation_path = image_dir + "prueba2.ndpi.ndpa"
+filename = 'prueba2.ndpi'
+annotation_path = "prueba2.ndpi.ndpa"
 
-img_name_1 = image_dir + "prueba2_x40_z0_half_1.tif" # imagen para entrenamiento
-img_name_2 = image_dir + "prueba2_x40_z0_half_2.tif" # imagen para validacion
+img_name_1 = image_dir + "prueba2_x40_z0_half_1.tif"  # imagen para train
+img_name_2 = image_dir + "prueba2_x40_z0_half_2.tif"  # imagen para test
 
-tile_side = 128  # numero de pixeles por lado de cada tile. En este caso solo es un cuadrado.
-
-# scale = 1 # Valor entre 1 y 0. Si no se quiere achicar la imagen, se deja como 1. Si se quiere rebajar en un 50% 
+tile_side = 128  # numero de pixeles por lado de cada tile.
 
 result_name = 'results_prueba2_half2_tile{}_v20190509'.format(tile_side) # nombre del resultado, a ser cuardado despues tanto como objeto .npy como imagen .jpeg
 
-
-
 # se obtiene la anotacion de intetres
 imagen = NDPImage(filename)
-annotationList = ImageAnnotationList(ndp_image=imagen, annotation_path=annotation_path)
+annotationList = ImageAnnotationList(ndp_image=imagen,
+                                     annotation_path=annotation_path)
 annotations = annotationList.annotation_list
 annotation_prueba = annotations[0]
 
@@ -74,12 +60,12 @@ print("mask.shape")
 print(mask.shape)
 
 t0 = time()
-print("t0: {}".format(t0))
+print("t0: {}".format(t0 % 60))
 im1 = cv2.imread(img_name_1)
 im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2HSV)
 
 t1 = t0 - time()
-print("t1: {}".format(t1))
+print("t1: {}".format(t1 % 60))
  
 ##########
 # im1_height = round(im1.shape[0] * scale)
@@ -91,7 +77,7 @@ im2 = cv2.imread(img_name_2)
 im2 = cv2.cvtColor(im2, cv2.COLOR_BGR2HSV)
 
 t2 = t1 - time()
-print("t2: {}".format(t2))
+print("t2: {}".format(t2 % 60))
 
 ##########
 # im2_height = round(im2.shape[0] * scale)
@@ -112,45 +98,63 @@ print("expected tile num: " + str(tile_num_expected))
 
 X = np.zeros((tile_num_expected, tile_side, tile_side, 3)) # se crea un numpy array con las dimensiones esperadas y rellena de 0s,
                                                            # y los 0s se van reemplazando por los valores correctos en el for loop
-y = []
 
-
-validation_X = np.zeros((tile_num_expected, tile_side, tile_side, 3)) # = []
+val_X = np.zeros((tile_num_expected, tile_side, tile_side, 3)) # = []
                                              # por ahora esto sólo va acá porque la imagen es del mismo tamaño que para la prueba
                                              # para generalizar hay que usar los image_height y width de la imagen.
 
 
 t3 = t2 - time()
-print("t3: {}".format(t3))
+print("t3: {}".format(t3 % 60))
 
 i=0
-for ver in range(0,round(image_height/tile_side - 1)): # al restar 1 a image_height/tile_side, nos aseguramos de que si queda un pedazo de la imagen 
-                                                       # estamos haciendo que no se cuenten los pixeles del borde inferior y derecho, en caso de que
-                                                       # no alcancen para hacer un tile. E.g. image_height = 10, tile_side = 3. 
-                                                       # round(image_height/tile_side - 1) arroja 3, por lo que el último pixel no se pesca.
-                                                       # lo mismo para image width
-    for hor in range(0,round(image_width/tile_side - 1)):
-        if np.sum(mask[(tile_side*ver):(tile_side*(ver+1)), (tile_side*hor):(tile_side*(hor+1))]) == tile_side**2:
-            y.append(1)
-        else:
-            y.append(0)
 
-        '''
-        # X.append(im1[tile_side * ver : tile_side * (ver + 1), tile_side * hor : tile_side * (hor + 1),:] / 255)
-        # validation_X.append(im2[tile_side * ver : tile_side * (ver + 1), tile_side * hor : tile_side * (hor + 1),:] / 255)
-        '''
+n_ver = round(image_height/tile_side - 1)
+n_hor = round(image_width/tile_side - 1)
+# al restar 1 a image_height/tile_side, nos aseguramos de que si queda un pedazo de la imagen 
+# estamos haciendo que no se cuenten los pixeles del borde inferior y derecho, en caso de que
+# no alcancen para hacer un tile. E.g. image_height = 10, tile_side = 3. 
+# round(image_height/tile_side - 1) arroja 3, por lo que el último pixel no se pesca.
+# lo mismo para image width
 
-        X[i] = im1[tile_side * ver : tile_side * (ver + 1), tile_side * hor : tile_side * (hor + 1),:] / 255
-        validation_X[i] = im2[tile_side * ver : tile_side * (ver + 1), tile_side * hor : tile_side * (hor + 1),:] / 255
-        i+=1
+tile_side_squared = tile_side**2
+
+for ver in range(0, n_ver):
+
+    height_from = tile_side * ver
+    height_to = tile_side * (ver + 1)
+
+    for hor in range(0, n_hor):
+
+        width_from = tile_side * hor
+        width_to = tile_side * (hor + 1)
+
+        # if np.sum(mask[height_from : height_to, width_from : width_to]) == tile_side_squared:
+        #     y[i] = 1
+        # else:
+        #     y[i] = 0
+
+        X[i] = im1[height_from : height_to, width_from : width_to, :] / 255
+        val_X[i] = im2[height_from : height_to, width_from : width_to, :] / 255
+        i += 1
 
         # gc.collect() # esta funcion es como un 'empty recycle bin' donde se borran los unreferenced objects
 
+tiempo_ = time()
+y = [
+    1 
+    if np.sum(mask[tile_side * ver : tile_side * (ver + 1), tile_side * hor : tile_side * (hor + 1)]) == tile_side_squared
+    else 0
+    for hor in range(0,n_hor)
+    for ver in range(0,n_ver)
+    ]
 
 
+tiempo_final = round(time()-tiempo_,5)
+print("tiempo list comprehenasion: " + str(tiempo_final))
 
 t4 = t3 - time()
-print("t4: {}".format(t4))
+print("t4: {}".format(t4 % 60))
 
 
 print("valor de i: " + str(i))
@@ -161,44 +165,40 @@ print("valor de i: " + str(i))
 
 # print("suma total X: " + str(sum(X)))
 
-'''
-# X = np.array(X)
-# validation_X = np.array(validation_X)
-'''
+
+# print('X.shape: ' + str(X.shape))
+# print('X[1].shape: ' + str(X[1].shape))
+# print('val_X.shape' + str(val_X.shape))
+# print('val_X[1].shape' + str(val_X[1].shape))
 
 
-print('X.shape: ' + str(X.shape))
-print('X[1].shape: ' + str(X[1].shape))
-print('validation_X.shape' + str(validation_X.shape))
-print('validation_X[1].shape' + str(validation_X[1].shape))
 
-# image height: 17152
-# image width: 14336
-# X.shape: (272367, 30, 30, 3)
-# X[1].shape: (30, 30, 3)
-# validation_X.shape(272367, 30, 30, 3)
-# validation_X.shape(272367, 30, 30, 3)
 
-print("marca 1")
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=21)
-print("marca 2")
 
-t5 = t4 - time()
-print("t5: {}".format(t5))
+# print("marca 1")
+# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=21)
+# print("marca 2")
+
+
 
 
 # print(X_train[3000].shape)
 # print(X_test[3000].shape)
 
 model = tf.keras.models.Sequential([
-    tf.keras.layers.Conv2D(filters=128, kernel_size=(3,3), input_shape=(tile_side, tile_side, 3), data_format="channels_last", activation='relu'),
-    tf.keras.layers.MaxPooling2D(pool_size=(2,2)),
-    tf.keras.layers.Conv2D(filters=128, kernel_size=(3,3), data_format="channels_last", activation='relu'),
-    tf.keras.layers.MaxPooling2D(pool_size=(2,2)),
-    tf.keras.layers.Conv2D(filters=128, kernel_size=(3,3), data_format="channels_last", activation='relu'),
-    tf.keras.layers.MaxPooling2D(pool_size=(2,2)),
-    tf.keras.layers.Conv2D(filters=128, kernel_size=(3,3), data_format="channels_last", activation='relu'),
-    tf.keras.layers.MaxPooling2D(pool_size=(2,2)),
+    tf.keras.layers.Conv2D(filters=128, kernel_size=(3, 3),
+                           input_shape=(tile_side, tile_side, 3),
+                           data_format="channels_last", activation='relu'),
+    tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
+    tf.keras.layers.Conv2D(filters=128, kernel_size=(3, 3),
+                           data_format="channels_last", activation='relu'),
+    tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
+    tf.keras.layers.Conv2D(filters=128, kernel_size=(3, 3),
+                           data_format="channels_last", activation='relu'),
+    tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
+    tf.keras.layers.Conv2D(filters=128, kernel_size=(3, 3),
+                           data_format="channels_last", activation='relu'),
+    tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
     tf.keras.layers.Flatten(),
     tf.keras.layers.Dense(128, activation='relu'),
     tf.keras.layers.Dense(1, activation='sigmoid'),
@@ -209,18 +209,18 @@ model = tf.keras.models.Sequential([
 	# tf.keras.layers.Dense(10, activation=tf.nn.softmax)
 ])
 
-model.compile(optimizer='adam',
-              loss='binary_crossentropy',
+model.compile(optimizer='adam', loss='binary_crossentropy',
             #   loss = 'sparse_categorical_crossentropy',
               metrics=['acc', metrics.Accuracy(), metrics.Precision(), metrics.Recall()])
 
-model.fit(X_train, y_train, epochs=5)
-model.evaluate(X_test, y_test)
+model.fit(X, y, epochs=5, validation_split=0.5)
 
-results = model.predict_classes(validation_X)
+# model.evaluate(X_test, y_test)
 
-# def results_to_mask(results, )
+results= model.predict_classes(val_X)
 
+t5 = t4 - time()
+print("t5: {}".format(t5 % 60))
 
 
 

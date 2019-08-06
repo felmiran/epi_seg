@@ -9,6 +9,7 @@ __pycache__/
 .vscode/
 notebooks/
 data/
+openslide-win64-20171122/
 
 
 tests.py
