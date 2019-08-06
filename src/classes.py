@@ -234,24 +234,6 @@ class Annotation:
         # generada la mask
         return
 
-    def extract_region(self, square_top_left_corner, square_height,
-                       square_width, draw_region=False):
-
-        '''
-        square_top_left_corner: (x,y) tuple
-        '''
-        try:
-            region = self.mask[square_top_left_corner[1]:
-                               square_top_left_corner[1]+square_height,
-                               square_top_left_corner[0]:
-                               square_top_left_corner[0]+square_width]
-
-            if draw_region:
-                plt.figure()
-                plt.imshow(region*255, aspect='auto')
-                plt.show()
-
-            return region
 
         except AttributeError:
             print("The mask has not been created.")
@@ -312,10 +294,34 @@ class NDPAnnotationPoint(Point):
         return (round(x), round(y))
 
 
+def extract_region(np_array, square_top_left_corner, square_height,
+                   square_width, draw_region=False):
+
+    '''
+    square_top_left_corner: (x,y) tuple
+    square_height and square_width: height and width of ROI
+    draw_region: if true, the extracted ROI will be previewed
+    '''
+    region = np_array[square_top_left_corner[1]:
+                      square_top_left_corner[1]+square_height,
+                      square_top_left_corner[0]:
+                      square_top_left_corner[0]+square_width]
+
+    if draw_region:
+        plt.figure()
+        plt.imshow(region*255, aspect='auto')
+        plt.show()
+
+    return region
+
+
 def save_mask_as_img(numpy_array, filename):
     im = Image.fromarray(np.uint8(numpy_array))
     im.save(filename)
     return
 
+
+def PIL_to_numpy(PIL_obj):
+    pass
 
 
