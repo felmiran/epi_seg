@@ -163,11 +163,11 @@ plt.figure()
 plt.imshow(train_img, aspect='auto')
 plt.show()
 
+train_img = cv2.normalize(train_img, train_img, 0.,1.,dtype=cv2.CV_32F, norm_type=cv2.NORM_MINMAX)
 
 X = util.view_as_blocks(train_img, block_shape=(tile_side,tile_side,3))
 print(X.shape)
 X = X.reshape((train_img.shape[0]//tile_side)*(train_img.shape[1]//tile_side), tile_side, tile_side, 3)
-X = X / 255.0
 
 print(X.shape)
 print("width: " + str(image_width - image_width % tile_side))

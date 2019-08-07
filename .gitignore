@@ -4,6 +4,7 @@
 *.ndpi
 *.ndpa
 *.tif
+*.npy
 
 __pycache__/
 .vscode/

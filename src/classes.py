@@ -235,15 +235,6 @@ class Annotation:
         return
 
 
-        except AttributeError:
-            print("The mask has not been created.")
-            print("Please run the following:\n")
-            print("  <annotation>.get_mask() if mask" +
-                  " is created from points \n")
-            print("  <annotation>.set_mask() if mask" +
-                  " is loaded from np array \n")
-
-
 class Point:
     def __init__(self, x, y):
         self.coord = (x, y)
