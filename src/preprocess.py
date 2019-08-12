@@ -4,6 +4,7 @@ from math import ceil
 
 
 def call_ndpi_ndpa(filename):
+    # TODO pasar a "utils.py"
     '''
     Filename is the name of the ndpi file.
     OpenSlide requires the file to be in the cwd.
@@ -15,9 +16,26 @@ def call_ndpi_ndpa(filename):
 
 
 # TODO
-def rectangle_split_ndpi(ndp_image, width, height, lvl=0, norm=False, tohsv=False, as_numpy=False):
+def rectangle_split_ndpi(ndp_image, width, height, norm=False,
+                         tohsv=False, as_numpy=False):
     '''
-    splits image into smaller, easier to handle images
+    Splits image into smaller, easier to handle images
+
+    input:
+    - ndp_image: object of class NDPImage
+    - width:
+    - height:
+    - lvl:
+    - norm:
+    - tohsv:
+    - as_numpy:
+
+
+
+    Observations:
+    - split images can be normalized, but only if these are saved as numpy
+      arrays (as_numpy=True); as_numpy=False overrides norm=True.
+    - Images are saved in the "../data/split/X" folder with .tif extension
 
     '''
     size_hor = ndp_image.width_lvl_0
@@ -32,11 +50,16 @@ def rectangle_split_ndpi(ndp_image, width, height, lvl=0, norm=False, tohsv=Fals
     print("n_hor: " + str(n_hor))
     print("n_ver: " + str(n_ver))
 
+    lvl = 0
     original = np.array(ndp_image.read_region(location=(0, 0),
                                               level=lvl,
                                               size=(size_hor, size_ver)))
 
     original = original[:, :, :3]
+    # TODO: asegurar que la imagen antes del to_hsv sea RBG, ver como hacer
+    # para que se guarde correctamente como hsv. (idea, antes pasar la
+    # variable original a np, guardar el tipo. Ese tipo se puede usar
+    # para que la función "to_hsv" pueda partir como RGBA o como RBG
     if tohsv:
         original = to_hsv(original)
 
@@ -50,10 +73,10 @@ def rectangle_split_ndpi(ndp_image, width, height, lvl=0, norm=False, tohsv=Fals
                                  square_height=height,
                                  square_width=width)
             filename = ndp_image.filename
-            dimensions = "({},{})_{}x{}.tif".format(w*width,
-                                                    h*height,
-                                                    width,
-                                                    height)
+            dimensions = "({},{})_{}x{}".format(w*width,
+                                                h*height,
+                                                width,
+                                                height)
             filename = filename.replace(".ndpi", "") + dimensions
 
             if not as_numpy:
@@ -76,8 +99,10 @@ def rectangle_split_ndpa(image_annotation_list, width, height, value_ones=1):
     n_hor = ceil(size_hor / width)
     n_ver = ceil(size_ver / height)
 
-    print("size horizontal: " + str(image_annotation_list.ndp_image.width_lvl_0))
-    print("size vertical: " + str(image_annotation_list.ndp_image.height_lvl_0))
+    print("size horizontal: " +
+          str(image_annotation_list.ndp_image.width_lvl_0))
+    print("size vertical: " +
+          str(image_annotation_list.ndp_image.height_lvl_0))
 
     print("n_hor: " + str(n_hor))
     print("n_ver: " + str(n_ver))
@@ -98,6 +123,7 @@ def rectangle_split_ndpa(image_annotation_list, width, height, value_ones=1):
 
 
 def to_hsv(image):
+    # TODO pasar a "utils.py"
     '''
     Image corresponds to a numpy array.
     function equires original image to come in BGR.
@@ -107,6 +133,7 @@ def to_hsv(image):
 
 
 def normalize_image(image):
+    # TODO pasar a "utils.py"
     '''
     image corresponds to a numpy array.
     '''
@@ -121,16 +148,16 @@ def main():
     filename = "S04_292_p16_RTU_ER1_20 - 2016-04-12 15.42.13.ndpi"
     ndp_image, image_annotation_list = call_ndpi_ndpa(filename)
     width, height = 1280*4, 1280*4
-    # rectangle_split_ndpa(image_annotation_list=image_annotation_list,
-    #                      width=width,
-    #                      height=height,
-    #                      value_ones=255)
+    rectangle_split_ndpa(image_annotation_list=image_annotation_list,
+                         width=width,
+                         height=height,
+                         value_ones=255)
     rectangle_split_ndpi(ndp_image=ndp_image,
                          width=width,
                          height=height,
                          norm=True,
                          tohsv=True,
-                         as_numpy=True)
+                         as_numpy=False)
 
 
 if __name__ == "__main__":
