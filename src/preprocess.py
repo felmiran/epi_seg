@@ -2,12 +2,17 @@ from classes import *
 from cv2 import *
 from math import ceil
 
+# TODO> rename to "split.py"
+
+
+
 
 def call_ndpi_ndpa(filename):
     # TODO pasar a "utils.py"
     '''
     Filename is the name of the ndpi file.
     OpenSlide requires the file to be in the cwd.
+    the annotation must end in ".ndpi.ndpa".
 
     '''
     ndp_image = NDPImage(filename)
@@ -29,8 +34,6 @@ def rectangle_split_ndpi(ndp_image, width, height, norm=False,
     - norm:
     - tohsv:
     - as_numpy:
-
-
 
     Observations:
     - split images can be normalized, but only if these are saved as numpy
@@ -56,10 +59,7 @@ def rectangle_split_ndpi(ndp_image, width, height, norm=False,
                                               size=(size_hor, size_ver)))
 
     original = original[:, :, :3]
-    # TODO: asegurar que la imagen antes del to_hsv sea RBG, ver como hacer
-    # para que se guarde correctamente como hsv. (idea, antes pasar la
-    # variable original a np, guardar el tipo. Ese tipo se puede usar
-    # para que la función "to_hsv" pueda partir como RGBA o como RBG
+
     if tohsv:
         original = to_hsv(original)
 
@@ -73,10 +73,10 @@ def rectangle_split_ndpi(ndp_image, width, height, norm=False,
                                  square_height=height,
                                  square_width=width)
             filename = ndp_image.filename
-            dimensions = "({},{})_{}x{}".format(w*width,
-                                                h*height,
-                                                width,
-                                                height)
+            dimensions = "_({},{})_{}x{}".format(w*width,
+                                                 h*height,
+                                                 width,
+                                                 height)
             filename = filename.replace(".ndpi", "") + dimensions
 
             if not as_numpy:
@@ -114,10 +114,10 @@ def rectangle_split_ndpa(image_annotation_list, width, height, value_ones=1):
                                  square_height=height,
                                  square_width=width)
             filename = image_annotation_list.ndp_image.filename
-            dimensions = "({},{})_{}x{}".format(w*width,
-                                                h*height,
-                                                width,
-                                                height)
+            dimensions = "_({},{})_{}x{}".format(w*width,
+                                                 h*height,
+                                                 width,
+                                                 height)
             filename = filename.replace(".ndpi", "") + dimensions
             save_mask_as_img(reg, "../split/mask/" + filename + ".tif")
 
@@ -126,10 +126,11 @@ def to_hsv(image):
     # TODO pasar a "utils.py"
     '''
     Image corresponds to a numpy array.
-    function equires original image to come in BGR.
-    NDPI images come like this.
+    function equires original image to come in RGB.
+    NDPI images extracted with Openslide come in RGBA,
+    so the last channel is dismissed.
     '''
-    return cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    return cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
 
 
 def normalize_image(image):
@@ -143,6 +144,12 @@ def normalize_image(image):
 
 
 def main():
+
+    '''
+    for now, this function grabs a ndpi image, splits the image and the mask
+    and saves the splits in the split directory
+
+    '''
     print(os.getcwd())  # borrar
     os.chdir("data/raw")
     filename = "S04_292_p16_RTU_ER1_20 - 2016-04-12 15.42.13.ndpi"
@@ -151,7 +158,7 @@ def main():
     rectangle_split_ndpa(image_annotation_list=image_annotation_list,
                          width=width,
                          height=height,
-                         value_ones=255)
+                         value_ones=1)
     rectangle_split_ndpi(ndp_image=ndp_image,
                          width=width,
                          height=height,

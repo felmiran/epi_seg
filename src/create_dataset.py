@@ -243,10 +243,10 @@ model = tf.keras.models.Sequential([
     tf.keras.layers.Dense(128, activation='relu'),
     tf.keras.layers.Dense(1, activation='sigmoid'),
     # tf.keras.layers.Dense(512, activation=tf.nn.relu),
-	# tf.keras.layers.Dropout(0.2),
+    # tf.keras.layers.Dropout(0.2),
     # tf.keras.layers.Dense(256, activation=tf.nn.relu),
-	# tf.keras.layers.Dropout(0.2),
-	# tf.keras.layers.Dense(10, activation=tf.nn.softmax)
+    # tf.keras.layers.Dropout(0.2),
+    # tf.keras.layers.Dense(10, activation=tf.nn.softmax)
 ])
 
 model.compile(optimizer='adam', loss='binary_crossentropy',

@@ -123,7 +123,13 @@ class ImageAnnotationList:
 
     def merge_annotations(self, draw_mask=False):
         '''
-            funcion para mergear las anotaciones por ID de anotacion
+        funcion para mergear las anotaciones por ID de anotacion
+        inputs:
+         - draw_mask: if True, a figure of the mask will be displayed
+
+        outputs:
+         - merged: corresponds to the mask that contains all annotations
+           of an image
         '''
 
         masks = [a.get_mask() for a in self.annotation_list]
@@ -253,7 +259,7 @@ class NDPAnnotationPoint(Point):
          funcion para pasar los puntos desde coordenadas fisicas tomando el
          escaneo completo a pixeles de la imagen de interes.
 
-         input: 
+         input:
          -  punto (tupla x,y)
          -  image properties object, que contiene:
                 -  offset_x
@@ -314,5 +320,3 @@ def save_mask_as_img(numpy_array, filename):
 
 def PIL_to_numpy(PIL_obj):
     pass
-
-
