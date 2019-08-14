@@ -29,8 +29,10 @@ def call_ndpi_ndpa(filename):
     return ndp_image, image_annotation_list
 
 
-# TODO
-def rectangle_split_ndpi(ndp_image, width, height, norm=False,
+# TODO> TESTIS:
+# 1- el nombre de los archivos debe ser igual en X y en mask
+# 2- el tamano de los archivos debe ser igual para cada nombre
+def rectangle_split_ndpi(ndp_image, split_width, split_height, norm=False,
                          tohsv=False, as_numpy=False):
     '''
     Splits image into smaller, easier to handle images
@@ -50,6 +52,9 @@ def rectangle_split_ndpi(ndp_image, width, height, norm=False,
     - Images are saved in the "../data/split/X" folder with .tif extension
 
     '''
+    width = split_width
+    height = split_height
+
     size_hor = ndp_image.width_lvl_0
     size_ver = ndp_image.height_lvl_0
 
@@ -63,42 +68,65 @@ def rectangle_split_ndpi(ndp_image, width, height, norm=False,
     print("n_ver: " + str(n_ver))
 
     lvl = 0
-    original = np.array(ndp_image.read_region(location=(0, 0),
-                                              level=lvl,
-                                              size=(size_hor, size_ver)))
+    # original = np.array(ndp_image.read_region(location=(0, 0),
+    #                                           level=lvl,
+    #                                           size=(size_hor, size_ver)))
 
-    original = original[:, :, :3]
+    # original = original[:, :, :3]
 
-    if tohsv:
-        original = to_hsv(original)
+    # if tohsv:
+    #     original = to_hsv(original)
 
-    if norm and as_numpy:
-        original = normalize_image(original)
+    # if norm and as_numpy:
+    #     original = normalize_image(original)
 
     for h in range(n_ver):
+        if h == n_ver:
+            height = size_ver - (n_ver - 1) * split_height
+
         for w in range(n_hor):
-            reg = extract_region(original,
-                                 square_top_left_corner=(w*width, h*height),
-                                 square_height=height,
-                                 square_width=width)
+            if w == n_hor:
+                width = size_hor - (n_hor - 1) * split_width
+
+            # reg = extract_region(original,
+            #                      square_top_left_corner=(w*width, h*height),
+            #                      square_height=height,
+            #                      square_width=width)
+
+            reg = np.array(ndp_image.read_region(location=(w * width,
+                                                           h * height),
+                                                 level=lvl,
+                                                 size=(width, height)))
+
+            reg = reg[:, :, :3]
+
+            if tohsv:
+                reg = to_hsv(reg)
+
+            if norm and as_numpy:
+                reg = normalize_image(reg)
+
             filename = ndp_image.filename
             dimensions = "_({},{})_{}x{}".format(w*width,
                                                  h*height,
                                                  width,
                                                  height)
             filename = filename.replace(".ndpi", "") + dimensions
-
             if not as_numpy:
                 save_mask_as_img(reg, "../split/X/" + filename + ".tif")
             else:
                 np.save("../split/X/" + filename, reg)
 
 
-def rectangle_split_ndpa(image_annotation_list, width, height, value_ones=1):
+def rectangle_split_ndpa(image_annotation_list, split_width,
+                         split_height, value_ones=1):
 
     '''
     mask from image_annotation_list is expected to be 0s and 1s
     '''
+
+    width = split_width
+    height = split_height
 
     merged = image_annotation_list.merge_annotations().mask * value_ones
 
@@ -117,7 +145,15 @@ def rectangle_split_ndpa(image_annotation_list, width, height, value_ones=1):
     print("n_ver: " + str(n_ver))
 
     for h in range(n_ver):
+
+        if h == n_ver:
+            height = size_ver - (n_ver - 1) * split_height
+
         for w in range(n_hor):
+
+            if w == n_hor:
+                width = size_hor - (n_hor - 1) * split_width
+
             reg = extract_region(merged,
                                  square_top_left_corner=(w*width, h*height),
                                  square_height=height,
@@ -173,16 +209,15 @@ def main():
         ndp_image, image_annotation_list = call_ndpi_ndpa(ndpi_file)
         width, height = 128, floor(ndp_image.height_lvl_0/2)
         rectangle_split_ndpa(image_annotation_list=image_annotation_list,
-                             width=width,
-                             height=height,
+                             split_width=width,
+                             split_height=height,
                              value_ones=1)
         rectangle_split_ndpi(ndp_image=ndp_image,
-                             width=width,
-                             height=height,
+                             split_width=width,
+                             split_height=height,
                              norm=True,
                              tohsv=True,
                              as_numpy=False)
-
 
     # print(os.getcwd())  # borrar
     # os.chdir("data/raw")
