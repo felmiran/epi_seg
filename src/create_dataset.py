@@ -152,6 +152,7 @@ for ver in range(0, n_ver):
         val_X[i] = im2[height_from : height_to, width_from : width_to, :] / 255
         i += 1
 
+np.save("D:/felipe/software_projects/epi_seg/src/data/validation/val_X", val_X)
 print("valor de i: " + str(i))
 
 tiempo_ = time()
@@ -175,7 +176,9 @@ print("height: " + str(image_height - image_height % tile_side))
 
 
 y = [1 
-    if np.sum(mask[tile_side * ver : tile_side * (ver + 1), tile_side * hor : tile_side * (hor + 1)]) == tile_side_squared
+    if np.sum(mask[tile_side * ver : tile_side * (ver + 1),
+                   tile_side * hor : tile_side * (hor + 1)
+                   ]) == tile_side_squared
     else 0
     for ver in range(0,n_ver)
     for hor in range(0,n_hor)]

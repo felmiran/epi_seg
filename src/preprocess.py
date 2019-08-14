@@ -1,10 +1,19 @@
+import os
 from classes import *
-from cv2 import *
-from math import ceil
+from cv2 import cvtColor, COLOR_RGB2HSV, normalize, CV_32F, NORM_MINMAX
+from math import ceil, floor
 
 # TODO> rename to "split.py"
 
 
+def list_ndpi_files_from_dir():
+    # TODO> pasar a "utils.py"
+    '''
+    lists ndpi files in cwd
+    '''
+    ndpi_list = os.listdir()
+    return [ndpi_file for ndpi_file in ndpi_list
+            if ndpi_file.endswith(".ndpi")]
 
 
 def call_ndpi_ndpa(filename):
@@ -130,7 +139,7 @@ def to_hsv(image):
     NDPI images extracted with Openslide come in RGBA,
     so the last channel is dismissed.
     '''
-    return cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+    return cvtColor(image, COLOR_RGB2HSV)
 
 
 def normalize_image(image):
@@ -139,8 +148,16 @@ def normalize_image(image):
     image corresponds to a numpy array.
     '''
 
-    return cv2.normalize(image, None, alpha=0., beta=1.,
-                         dtype=cv2.CV_32F, norm_type=cv2.NORM_MINMAX)
+    return normalize(image, None, alpha=0., beta=1.,
+                     dtype=CV_32F, norm_type=NORM_MINMAX)
+
+
+def clean_empty_splits():
+    # TODO>
+    '''
+    deletes image and mask splits where there is no annotated tile
+    '''
+    pass
 
 
 def main():
@@ -150,21 +167,38 @@ def main():
     and saves the splits in the split directory
 
     '''
-    print(os.getcwd())  # borrar
     os.chdir("data/raw")
-    filename = "S04_292_p16_RTU_ER1_20 - 2016-04-12 15.42.13.ndpi"
-    ndp_image, image_annotation_list = call_ndpi_ndpa(filename)
-    width, height = 1280*4, 1280*4
-    rectangle_split_ndpa(image_annotation_list=image_annotation_list,
-                         width=width,
-                         height=height,
-                         value_ones=1)
-    rectangle_split_ndpi(ndp_image=ndp_image,
-                         width=width,
-                         height=height,
-                         norm=True,
-                         tohsv=True,
-                         as_numpy=False)
+    for ndpi_file in list_ndpi_files_from_dir():
+        print(ndpi_file)
+        ndp_image, image_annotation_list = call_ndpi_ndpa(ndpi_file)
+        width, height = 128, floor(ndp_image.height_lvl_0/2)
+        rectangle_split_ndpa(image_annotation_list=image_annotation_list,
+                             width=width,
+                             height=height,
+                             value_ones=1)
+        rectangle_split_ndpi(ndp_image=ndp_image,
+                             width=width,
+                             height=height,
+                             norm=True,
+                             tohsv=True,
+                             as_numpy=False)
+
+
+    # print(os.getcwd())  # borrar
+    # os.chdir("data/raw")
+    # filename = "S04_292_p16_RTU_ER1_20 - 2016-04-12 15.42.13.ndpi"
+    # ndp_image, image_annotation_list = call_ndpi_ndpa(filename)
+    # width, height = 128, floor(ndp_image.height_lvl_0/2)
+    # rectangle_split_ndpa(image_annotation_list=image_annotation_list,
+    #                      width=width,
+    #                      height=height,
+    #                      value_ones=1)
+    # rectangle_split_ndpi(ndp_image=ndp_image,
+    #                      width=width,
+    #                      height=height,
+    #                      norm=True,
+    #                      tohsv=True,
+    #                      as_numpy=False)
 
 
 if __name__ == "__main__":
