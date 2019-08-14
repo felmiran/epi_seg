@@ -5,6 +5,7 @@
 *.ndpa
 *.tif
 *.npy
+*.h5
 
 __pycache__/
 .vscode/

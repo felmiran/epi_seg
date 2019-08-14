@@ -1,24 +1,39 @@
 import os
 from classes import *
-from cv2 import cvtColor, COLOR_RGB2HSV, normalize, CV_32F, NORM_MINMAX
+from cv2 import cvtColor, COLOR_RGB2HSV, normalize, CV_32F, NORM_MINMAX, imread
 from math import ceil, floor
+import numpy as np
 
 # TODO> rename to "split.py"
 
 
-def list_ndpi_files_from_dir():
+def list_ndpi_files_from_dir(directory=""):
     # TODO> pasar a "utils.py"
     '''
     lists ndpi files in cwd
     '''
-    ndpi_list = os.listdir()
+    ndpi_list = os.listdir(directory)
     return [ndpi_file for ndpi_file in ndpi_list
             if ndpi_file.endswith(".ndpi")]
 
 
-def delete_files_from_dir():
-    pass
-
+def delete_files_from_dir(directory="../split", lista=""):
+    '''
+    deletes files where mask has no pixel in annotated region
+    default directory is "split" from the "raw" folder
+    '''
+    if lista == "":
+        mask_list = os.listdir(directory + "/mask")
+        mask_list.remove(".gitkeep")
+    else:
+        mask_list = [x for x in lista]
+        
+    for filename in mask_list:
+        mask = imread(directory + "/mask/" + filename)[:,:,0]
+        
+        if np.amax(mask) == 0:
+            os.remove(directory + "/mask/" + filename)
+            os.remove(directory + "/X/" + filename)
 
 def call_ndpi_ndpa(filename):
     # TODO pasar a "utils.py"
@@ -200,7 +215,7 @@ def clean_empty_splits():
     pass
 
 
-def main():
+def main(clean=False):
 
     '''
     for now, this function grabs a ndpi image, splits the image and the mask
@@ -223,6 +238,9 @@ def main():
                              norm=True,
                              tohsv=True,
                              as_numpy=False)
+
+    if clean:
+        delete_files_from_dir()
 
     # print(os.getcwd())  # borrar
     # os.chdir("data/raw")
@@ -248,4 +266,4 @@ if __name__ == "__main__":
         if f.endswith(".tif"):
             os.remove("data/split/X/" + f)
             os.remove("data/split/mask/" + f)
-    main()
+    main(clean=False)
