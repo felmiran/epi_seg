@@ -136,7 +136,6 @@ class ImageGenerator(tf.keras.utils.Sequence):
 
         X = convert_image_to_stack_of_tiles(image, self.tile_side,
                                             self.tile_side)
-
         y = convert_mask_to_labels(mask, self.tile_side,
                                    self.tile_side)
 
@@ -196,18 +195,26 @@ def main():
 
     model = basic_dl_model(tile_side, training_generator)
 
-    val_X = np.load("data/validation/val_X.npy")
-    results = model.predict_classes(val_X)
+    model.save("models/basic_dl_model.h5")
 
-    n_ver = floor(17152/tile_side)
-    n_hor = floor(14336/tile_side)
+    ############# script para testing
+    # val_X = np.load("data/validation/val_X.npy")
+    # results = model.predict_classes(val_X)
 
-    results = results.reshape(n_ver, n_hor)
-    plt.figure()
-    plt.imshow(results, aspect='auto')
-    plt.show()
-    print(results)
-    print(np.unique(results))
+    # n_ver = floor(17152/tile_side)
+    # n_hor = floor(14336/tile_side)
+
+    # results = results.reshape(n_ver, n_hor)
+    # plt.figure()
+    # plt.imshow(results, aspect='auto')
+    # plt.show()
+    # print(results)
+    # print(np.unique(results))
+    #############
+
+
+
+
 
     # print(os.getcwd())
     # image_dir = "data/split/X"

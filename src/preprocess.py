@@ -16,6 +16,10 @@ def list_ndpi_files_from_dir():
             if ndpi_file.endswith(".ndpi")]
 
 
+def delete_files_from_dir():
+    pass
+
+
 def call_ndpi_ndpa(filename):
     # TODO pasar a "utils.py"
     '''
@@ -81,11 +85,11 @@ def rectangle_split_ndpi(ndp_image, split_width, split_height, norm=False,
     #     original = normalize_image(original)
 
     for h in range(n_ver):
-        if h == n_ver:
+        if h == n_ver-1:
             height = size_ver - (n_ver - 1) * split_height
 
         for w in range(n_hor):
-            if w == n_hor:
+            if w == n_hor-1:
                 width = size_hor - (n_hor - 1) * split_width
 
             # reg = extract_region(original,
@@ -146,12 +150,12 @@ def rectangle_split_ndpa(image_annotation_list, split_width,
 
     for h in range(n_ver):
 
-        if h == n_ver:
+        if h == n_ver-1:
             height = size_ver - (n_ver - 1) * split_height
 
         for w in range(n_hor):
 
-            if w == n_hor:
+            if w == n_hor-1:
                 width = size_hor - (n_hor - 1) * split_width
 
             reg = extract_region(merged,
@@ -207,7 +211,8 @@ def main():
     for ndpi_file in list_ndpi_files_from_dir():
         print(ndpi_file)
         ndp_image, image_annotation_list = call_ndpi_ndpa(ndpi_file)
-        width, height = 128, floor(ndp_image.height_lvl_0/2)
+        # width, height = 128, floor(ndp_image.height_lvl_0/2)
+        width, height = 128, 9600
         rectangle_split_ndpa(image_annotation_list=image_annotation_list,
                              split_width=width,
                              split_height=height,
@@ -238,4 +243,9 @@ def main():
 
 if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
+    filename = os.listdir("data/split/X")
+    for f in filename:
+        if f.endswith(".tif"):
+            os.remove("data/split/X/" + f)
+            os.remove("data/split/mask/" + f)
     main()
