@@ -139,8 +139,6 @@ class ImageGenerator(tf.keras.utils.Sequence):
         y = convert_mask_to_labels(mask, self.tile_side,
                                    self.tile_side)
 
-        
-
         # print("Shape of X: " + str(X.shape))
         # print("Length of y: " + str(len(y)))
 
@@ -173,7 +171,7 @@ def basic_dl_model(tile_side, training_generator):
                            metrics.Recall()])
 
     model.fit_generator(generator=training_generator,
-                        epochs=5,
+                        epochs=20,
                         use_multiprocessing=True,
                         workers=6,
                         class_weight={0: 1.,
@@ -195,7 +193,7 @@ def main():
 
     model = basic_dl_model(tile_side, training_generator)
 
-    model.save("models/basic_dl_model.h5")
+    model.save("models/basic_dl_model_9pics.h5")
 
     ############# script para testing
     # val_X = np.load("data/validation/val_X.npy")
@@ -212,13 +210,9 @@ def main():
     # print(np.unique(results))
     #############
 
-
-
-
-
     # print(os.getcwd())
     # image_dir = "data/split/X"
-    # filename = "S04_292_p16_RTU_ER1_20 - 2016-04-12 15.42.13(20480,5120)_" + \
+    # filename = "S04_292_p16_RTU_ER1_20 - 2016-04-12 15.42.13(20480,5120)_" +\
     #            "5120x5120.tif"
     # image = imread(image_dir + "/" + filename)
     # tile_height, tile_width = 1280, 1280

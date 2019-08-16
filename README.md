@@ -15,6 +15,7 @@ Installing dependencies (windows 10):
 
 
 Openslide is used for handling of NDP images and annotations. These can be downloaded in https://openslide.org/download/. This project uses the 64-bit windows binary from 2017-11-22. Add bin to path and you are done. 
+NOTE: apparently there was a dependency issue between an openslide and a cv2 dll file. I do not remember how I fixed it, but the openslide package in this project works.
 
 Common error: https://github.com/openslide/openslide-python/issues/23
 

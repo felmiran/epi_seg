@@ -7,7 +7,7 @@ import numpy as np
 # TODO> rename to "split.py"
 
 
-def list_ndpi_files_from_dir(directory=""):
+def list_ndpi_files_from_dir(directory=None):
     # TODO> pasar a "utils.py"
     '''
     lists ndpi files in cwd
@@ -17,7 +17,7 @@ def list_ndpi_files_from_dir(directory=""):
             if ndpi_file.endswith(".ndpi")]
 
 
-def delete_files_from_dir(directory="../split", lista=""):
+def clean_split_files(directory="../split", lista=""):
     '''
     deletes files where mask has no pixel in annotated region
     default directory is "split" from the "raw" folder
@@ -27,13 +27,14 @@ def delete_files_from_dir(directory="../split", lista=""):
         mask_list.remove(".gitkeep")
     else:
         mask_list = [x for x in lista]
-        
+
     for filename in mask_list:
-        mask = imread(directory + "/mask/" + filename)[:,:,0]
-        
+        mask = imread(directory + "/mask/" + filename)[:, :, 0]
+
         if np.amax(mask) == 0:
             os.remove(directory + "/mask/" + filename)
             os.remove(directory + "/X/" + filename)
+
 
 def call_ndpi_ndpa(filename):
     # TODO pasar a "utils.py"
@@ -48,9 +49,11 @@ def call_ndpi_ndpa(filename):
     return ndp_image, image_annotation_list
 
 
-# TODO> TESTIS:
+# TODO> TESTS:
 # 1- el nombre de los archivos debe ser igual en X y en mask
 # 2- el tamano de los archivos debe ser igual para cada nombre
+# 3- los archivos ndpi tienen que tener el formato necesario
+#    (borrar los ?xml y ponerle id a los ndpviewstate)
 def rectangle_split_ndpi(ndp_image, split_width, split_height, norm=False,
                          tohsv=False, as_numpy=False):
     '''
@@ -223,7 +226,10 @@ def main(clean=False):
 
     '''
     os.chdir("data/raw")
-    for ndpi_file in list_ndpi_files_from_dir():
+
+    archivo = ["S04_3441_p16_RTU_ER1_20 - 2016-04-12 15.45.38.ndpi"]
+    for ndpi_file in archivo:
+    # for ndpi_file in list_ndpi_files_from_dir():
         print(ndpi_file)
         ndp_image, image_annotation_list = call_ndpi_ndpa(ndpi_file)
         # width, height = 128, floor(ndp_image.height_lvl_0/2)
@@ -239,8 +245,20 @@ def main(clean=False):
                              tohsv=True,
                              as_numpy=False)
 
+        width, height = 9600, 128
+        rectangle_split_ndpa(image_annotation_list=image_annotation_list,
+                             split_width=width,
+                             split_height=height,
+                             value_ones=1)
+        rectangle_split_ndpi(ndp_image=ndp_image,
+                             split_width=width,
+                             split_height=height,
+                             norm=True,
+                             tohsv=True,
+                             as_numpy=False)
+
     if clean:
-        delete_files_from_dir()
+        clean_split_files()
 
     # print(os.getcwd())  # borrar
     # os.chdir("data/raw")
@@ -261,9 +279,9 @@ def main(clean=False):
 
 if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
-    filename = os.listdir("data/split/X")
-    for f in filename:
-        if f.endswith(".tif"):
-            os.remove("data/split/X/" + f)
-            os.remove("data/split/mask/" + f)
-    main(clean=False)
+    # filename = os.listdir("data/split/X")
+    # for f in filename:
+    #     if f.endswith(".tif"):
+    #         os.remove("data/split/X/" + f)
+    #         os.remove("data/split/mask/" + f)
+    main(clean=True)
