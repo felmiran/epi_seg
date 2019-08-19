@@ -8,6 +8,7 @@ import tensorflow as tf
 from tensorflow.keras import metrics
 from math import floor
 from sklearn.utils import shuffle
+import time
 
 
 # TODO> rename to "preprocess.py", y crear un nuevo archivo
@@ -145,7 +146,7 @@ class ImageGenerator(tf.keras.utils.Sequence):
         return shuffle(X, y)
 
 
-def basic_dl_model(tile_side, training_generator):
+def basic_dl_model(tile_side, training_generator, epochs=5):
 
     model = tf.keras.models.Sequential([
         tf.keras.layers.Conv2D(filters=128, kernel_size=(3, 3),
@@ -171,16 +172,19 @@ def basic_dl_model(tile_side, training_generator):
                            metrics.Recall()])
 
     model.fit_generator(generator=training_generator,
-                        epochs=20,
+                        epochs=epochs,
                         use_multiprocessing=True,
                         workers=6,
                         class_weight={0: 1.,
-                                      1: 50.})
+                                      1: 10.})
     return model
 
 
-def main():
+def InceptionModel(tile_side, training_generator):
+    pass
 
+
+def main():
     '''
     converts image to stack and runs training of DL model by use of custom
     Generator from Keras
@@ -193,39 +197,8 @@ def main():
 
     model = basic_dl_model(tile_side, training_generator)
 
-    model.save("models/basic_dl_model_9pics.h5")
-
-    ############# script para testing
-    # val_X = np.load("data/validation/val_X.npy")
-    # results = model.predict_classes(val_X)
-
-    # n_ver = floor(17152/tile_side)
-    # n_hor = floor(14336/tile_side)
-
-    # results = results.reshape(n_ver, n_hor)
-    # plt.figure()
-    # plt.imshow(results, aspect='auto')
-    # plt.show()
-    # print(results)
-    # print(np.unique(results))
-    #############
-
-    # print(os.getcwd())
-    # image_dir = "data/split/X"
-    # filename = "S04_292_p16_RTU_ER1_20 - 2016-04-12 15.42.13(20480,5120)_" +\
-    #            "5120x5120.tif"
-    # image = imread(image_dir + "/" + filename)
-    # tile_height, tile_width = 1280, 1280
-
-    # stacked = convert_image_to_stack_of_tiles(image, tile_height, tile_width)
-
-    # print(stacked.shape)
-
-    # muestra = stacked[5]
-
-    # plt.figure()
-    # plt.imshow(muestra)
-    # plt.show()
+    model.save("models/" + time.strftime("%Y%m%d-%H%M") +
+               "_basic_dl_model_20_epochs_9pics.h5")
 
 
 if __name__ == "__main__":

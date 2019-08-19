@@ -1,4 +1,4 @@
-from classes import *
+from classes import NDPAnnotationPoint, NDPImage, ImageAnnotationList
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
@@ -70,7 +70,7 @@ mask = annotation_prueba.get_mask()
 ##########
 
 # llama la funcion para guardar una mascara como imagen
-# classes.save_mask_as_img(mask,'mask.jpeg')
+# classes.save_np_as_image(mask,'mask.jpeg')
 print("Original Parameters:")
 print("offset_x, offset_y, mpp_x, mpp_y, width_lvl_0, height_lvl_0")
 print(imagen._get_image_properties())
@@ -152,7 +152,7 @@ for ver in range(0, n_ver):
         val_X[i] = im2[height_from : height_to, width_from : width_to, :] / 255
         i += 1
 
-np.save("D:/felipe/software_projects/epi_seg/src/data/validation/val_X", val_X)
+# np.save("D:/felipe/software_projects/epi_seg/src/data/validation/val_X", val_X)
 print("valor de i: " + str(i))
 
 tiempo_ = time()
@@ -257,16 +257,14 @@ model.compile(optimizer='adam', loss='binary_crossentropy',
               metrics=['acc', metrics.Accuracy(), metrics.Precision(), metrics.Recall()])
 
 model.fit(X, y, epochs=5, validation_split=0.5)
+# model.save("D:/felipe/software_projects/epi_seg/src/models/create_dataset.h5")
 
 # model.evaluate(X_test, y_test)
 
-results= model.predict_classes(val_X)
+results = model.predict_classes(val_X)
 
 t5 = time() - t4
 print("t5: {}".format(t5 % 60))
-
-
-
 
 height = n_ver
 width =  n_hor
@@ -283,8 +281,7 @@ print('Results - shape: {}'.format(results.shape))
 
 plt.figure(figsize = (15, 15))
 plt.imshow(results, aspect='auto')
-
 plt.show()
 
 # np.save( result_name + '.npy', results)
-save_mask_as_img(results*255, image_dir + result_name + ".jpeg")
+# save_np_as_image(results*255, image_dir + result_name + ".jpeg")

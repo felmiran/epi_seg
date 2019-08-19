@@ -312,7 +312,7 @@ def extract_region(np_array, square_top_left_corner, square_height,
     return region
 
 
-def save_mask_as_img(numpy_array, filename):
+def save_np_as_image(numpy_array, filename):
     im = Image.fromarray(np.uint8(numpy_array))
     im.save(filename)
     return
