@@ -40,12 +40,6 @@ annotation_path = "prueba2.ndpi.ndpa"
 ########################################
 ######### 2. Crear imagen y anotacion como numpy ############################
 
-
-
-
-
-
-
 img_name_1 = image_dir + "prueba2_x40_z0_half_1.tif"  # imagen para train
 img_name_2 = image_dir + "prueba2_x40_z0_half_2.tif"  # imagen para test
 

@@ -1,11 +1,21 @@
 import os
 from classes import *
-from cv2 import cvtColor, COLOR_RGB2HSV, COLOR_RGB2GRAY, normalize, CV_32F, NORM_MINMAX, imread, calcHist
+from cv2 import cvtColor, COLOR_RGB2HSV, COLOR_RGB2GRAY, COLOR_BGR2RGB, \
+    normalize, CV_32F, NORM_MINMAX, imread, calcHist, transpose, flip
 from math import ceil, floor
 import numpy as np
 import json
+import shutil
 
 # TODO> rename to "split.py"
+
+
+def create_directory(*args):
+    '''
+    *args are strings corresponding to directories
+    '''
+    for directory in args:
+        os.mkdir(os.path.dirname(directory))
 
 
 def list_files_from_dir(directory=None, extension=".ndpi"):
@@ -16,6 +26,52 @@ def list_files_from_dir(directory=None, extension=".ndpi"):
     ndpi_list = os.listdir(directory)
     return [ndpi_file for ndpi_file in ndpi_list
             if ndpi_file.endswith(extension)]
+
+
+def data_augmentation(directory="../split/X/1", flip_imgs=True):
+    '''
+    generates extra images for eah image in directory: 3 addicional
+    images corresponding to 90, 180, 270 rotations.
+    if flip=True the flipped version of the 4 images (original + 3)
+    will be created as well.
+    '''
+    labels = {}
+    for img_name in list_files_from_dir(directory=directory, extension=".tif"):
+
+        img = imread(directory + "/" + img_name)
+
+        img_90, labels["90_" + img_name] = flip(transpose(img), 1), 1
+        save_np_as_image(cvtColor(img_90, COLOR_BGR2RGB),
+                         directory + "/90_" + img_name)
+
+        img_180, labels["180_" + img_name] = flip(img, -1), 1
+        save_np_as_image(cvtColor(img_180, COLOR_BGR2RGB),
+                         directory + "/180_" + img_name)
+
+        img_270, labels["270_" + img_name] = flip(transpose(img), 0), 1
+        save_np_as_image(cvtColor(img_270, COLOR_BGR2RGB),
+                         directory + "/270_" + img_name)
+
+        if flip_imgs:
+            img_f, labels["f_" + img_name] = flip(img, 1), 1
+            save_np_as_image(cvtColor(img_f, COLOR_BGR2RGB),
+                             directory + "/f_" + img_name)
+
+            img_90f, labels["90f_" + img_name] = flip(img_90, 1), 1
+            save_np_as_image(cvtColor(img_90f, COLOR_BGR2RGB),
+                             directory + "/90f_" + img_name)
+
+            img_180f, labels["180f_" + img_name] = flip(img_180, 1), 1
+            save_np_as_image(cvtColor(img_180f, COLOR_BGR2RGB),
+                             directory + "/180f_" + img_name)
+
+            img_270f, labels["270f_" + img_name] = flip(img_270, 1), 1
+            save_np_as_image(cvtColor(img_270f, COLOR_BGR2RGB),
+                             directory + "/270f_" + img_name)
+
+    json.dump(labels, open("../split/X/augmentations.txt", "w"))
+
+    pass
 
 
 def clean_split_files(directory="../split", lista=""):
@@ -48,8 +104,26 @@ def call_ndpi_ndpa(filename):
     image_annotation_list = ImageAnnotationList(ndp_image, filename + ".ndpa")
     return ndp_image, image_annotation_list
 
+# TODO> registrar para la tesis como se llego a esta funcion tile_is_background
+# 1. Se probo con una funcion que calculaba si el % de pixeles entre
+#    220 y 240 era mayor a 90% (usando calcHist). Sin embargo, se observo que
+#    en la clase 0 tambien habian tiles que eran claramente background,
+#    solo que eran un poco mas oscuras.
+# 2. Aunque eran mas oscuras, se observaba que la std del histograma era menor
+#    en imagenes que son background. Viendo como se distribuye esta std entre
+#    tiles (separandolas con el metodo 1) se observo una separacion clara en
+#    std=5. Con esa info se hizo la segundafuncion tile_is_background_2.
 
-def tile_is_background(image, rng=(220, 240), threshold=0.9):
+
+def tile_is_background_2(image, threshold=5):
+    is_bkgnd = False
+    std = np.std(cvtColor(image, COLOR_RGB2GRAY))
+    if std < threshold:
+        is_bkgnd = True
+    return std, is_bkgnd
+
+
+def tile_is_background_1(image, rng=(220, 240), threshold=0.9):
     '''
     returns True if tile (np array) is not background. An <image> is classified
     as background if the proportion of pixels within <rng> is over
@@ -65,24 +139,26 @@ def tile_is_background(image, rng=(220, 240), threshold=0.9):
                     channels=[0], mask=None, histSize=[256], ranges=[0, 256])
     if np.sum(hist[rng[0]:rng[1]])/np.sum(hist) > 0.9:
         is_bkgnd = True
-    return is_bkgnd
+    return hist, is_bkgnd
 
 
 # TODO> TESTS:
 # 1- el nombre de los archivos debe ser igual en X y en mask
 # 2- el tamano de los archivos debe ser igual para cada nombre
 # 3- los archivos ndpi tienen que tener el formato necesario
-#    (borrar los ?xml y ponerle id a los ndpviewstate)
+# 4- validar que los labels se guarden correctamente, y
+#    sobreescriban el archivo antetiot
+# 5- test if 5000 por imagen son background. (quizás sea mejor separarlas por carpeta)
+# *- (borrar los ?xml y ponerle id a los ndpviewstate)
 
 
 def rectangle_split_ndpi_ndpa(ndp_image, image_annotation_list, split_height,
                               split_width, tohsv=False, path_ndpi="../split/X",
-                              path_ndpa="../split/mask"):
+                              path_ndpa="../split/mask", n_bkgnd_tiles=5000):
     '''
     Splits ndpi into tiles and saves lanel as dict in "labels.txt".
     Keys are filenames.
     '''
-
     merged = image_annotation_list.merge_annotations().mask
 
     width, height = split_width, split_height
@@ -98,6 +174,8 @@ def rectangle_split_ndpi_ndpa(ndp_image, image_annotation_list, split_height,
     print("n of vertical splits: " + str(n_ver))
 
     labels = {}
+    bkgnd_tiles_counter = 0
+    tile_class = "0"
 
     for h in range(n_ver):
         if h == n_ver-1:
@@ -123,23 +201,33 @@ def rectangle_split_ndpi_ndpa(ndp_image, image_annotation_list, split_height,
             split_filename = filename.replace(".ndpi", "")
             split_filename = split_filename + dimensions + ".tif"
 
-            if np.sum(reg_ndpa) == height * width:
-                is_background = tile_is_background(reg_ndpi, rng=(220, 240),
-                                                   threshold=0.9)
-                if is_background:
+            # _, is_bkgnd = tile_is_background_1(reg_ndpi, rng=(220, 240),
+            #                                    threshold=0.9)
+
+            _, is_bkgnd = tile_is_background_2(reg_ndpi, threshold=5)
+
+            if is_bkgnd:
+                if bkgnd_tiles_counter < n_bkgnd_tiles:
+                    labels[split_filename] = 2
+                    bkgnd_tiles_counter += 1
+                    tile_class = "background"
+                else:
                     continue
-                labels[split_filename] = 1
             else:
-                continue  # borrar despues de esta prueba
-                labels[split_filename] = 0
+                if np.sum(reg_ndpa) == height * width:
+                    labels[split_filename] = 1
+                    tile_class = "1"
+                else:
+                    labels[split_filename] = 0
+                    tile_class = "0"
 
             if tohsv:
                 reg_ndpi = to_hsv(reg_ndpi)
 
-            save_np_as_image(reg_ndpi, path_ndpi + "/" + split_filename)
+            save_np_as_image(reg_ndpi, path_ndpi + "/" + tile_class +
+                             "/" + split_filename)
 
     json.dump(labels, open(path_ndpi + "/" + filename + ".txt", "w"))
-
 
 
 def rectangle_split_ndpi(ndp_image, split_width, split_height,
@@ -197,7 +285,7 @@ def rectangle_split_ndpi(ndp_image, split_width, split_height,
             dimensions = "_({},{})_{}x{}".format(w*width, h*height,
                                                  width, height)
             filename = filename.replace(".ndpi", "") + dimensions
-            
+
             save_np_as_image(reg, path + "/" + filename + ".tif")
 
 
@@ -215,12 +303,11 @@ def rectangle_split_ndpa(image_annotation_list, split_width,
 
     size_hor = image_annotation_list.ndp_image.width_lvl_0
     n_hor = ceil(size_hor / width)
-    
+
     size_ver = image_annotation_list.ndp_image.height_lvl_0
     n_ver = ceil(size_ver / height)
 
     filename = image_annotation_list.ndp_image.filename
-
 
     print("size horizontal: " +
           str(image_annotation_list.ndp_image.width_lvl_0))
@@ -250,7 +337,6 @@ def rectangle_split_ndpa(image_annotation_list, split_width,
             save_np_as_image(reg, path + "/" + filename + ".tif")
 
 
-
 def to_hsv(image):
     # TODO pasar a "utils.py"
     '''
@@ -267,7 +353,6 @@ def normalize_image(image):
     '''
     image corresponds to a numpy array.
     '''
-
     return normalize(image, None, alpha=0., beta=1.,
                      dtype=CV_32F, norm_type=NORM_MINMAX)
 
@@ -282,7 +367,7 @@ def main(clean=False):
 
     archivo = ["S04_3441_p16_RTU_ER1_20 - 2016-04-12 15.45.38.ndpi"]
     for ndpi_file in archivo:
-    # for ndpi_file in list_files_from_dir():
+    # for ndpi_file in list_files_from_dir(extension=".ndpi"):
         print(ndpi_file)
         ndp_image, image_annotation_list = call_ndpi_ndpa(ndpi_file)
         # width, height = floor(ndp_image.width_lvl_0/4), floor(ndp_image.height_lvl_0/4)
@@ -307,14 +392,15 @@ def main(clean=False):
         #                      tohsv=True)
         width, height = 128, 128
         rectangle_split_ndpi_ndpa(ndp_image=ndp_image,
-                                           image_annotation_list=image_annotation_list,
-                                           split_height=height,
-                                           split_width=width,
-                                           tohsv=False,
-                                           path_ndpi="../split/X",
-                                           path_ndpa="../split/mask")
-                
-        
+                                  image_annotation_list=image_annotation_list,
+                                  split_height=height,
+                                  split_width=width,
+                                  tohsv=False,
+                                  path_ndpi="../split/X",
+                                  path_ndpa="../split/mask")
+
+    data_augmentation()
+
 
     # if clean:
     #     clean_split_files()
@@ -322,16 +408,15 @@ def main(clean=False):
 
 if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
-    files = os.listdir("data/split/X")
-    for f in files:
-        if f.endswith(".tif"):
-            try:
-                os.remove("data/split/X/" + f)
-            except:
-                pass
-            try:
-                os.remove("data/split/mask/" + f)
-            except:
-                pass
-            
+
+    try:
+        shutil.rmtree("data/split/X/")
+    except:
+        pass
+
+    create_directory("data/split/X/")
+    create_directory("data/split/X/background/", # background
+                     "data/split/X/1/",  # epithelium
+                     "data/split/X/0/")  # non-epithelium
+
     main(clean=False)

@@ -73,8 +73,8 @@ def convert_mask_to_labels(mask, tile_height, tile_width):
     n_hor = floor(mask.shape[1]/tile_width)
 
     y = [1
-         if np.sum(mask[tile_height * ver : tile_height * (ver + 1),
-                        tile_width * hor : tile_width * (hor + 1)
+         if np.sum(mask[tile_height * ver:tile_height * (ver + 1),
+                        tile_width * hor:tile_width * (hor + 1)
                         ]) == tile_height * tile_width
          else 0
          for ver in range(0, n_ver)
