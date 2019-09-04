@@ -6,10 +6,10 @@ from math import ceil, floor
 import numpy as np
 import json
 import shutil
+import glob
+from tqdm import tqdm
 
 # TODO> rename to "split.py"
-
-
 def create_directory(*args):
     '''
     *args are strings corresponding to directories
@@ -18,14 +18,48 @@ def create_directory(*args):
         os.mkdir(os.path.dirname(directory))
 
 
-def list_files_from_dir(directory=None, extension=".ndpi"):
+def build_dirs():
+    try:
+        shutil.rmtree("data/split/X/")
+    except:
+        pass
+
+    create_directory("data/split/X/")
+    create_directory("data/split/X/-1/",  # background
+                     "data/split/X/1/",  # epithelium
+                     "data/split/X/0/")  # non-epithelium
+
+
+def train_validation_test_partition(file_list, prop=(0.6, 0.4, 0.0)):
+    lf = len(file_list)
+    indexes = np.arange(lf)
+    np.random.shuffle(indexes)
+    train_list = [file_list[indexes[i]]
+                  for i in range(0, floor(prop[0]*lf))]
+    val_list = [file_list[indexes[i]]
+                for i in range(floor(prop[0]*lf),
+                               floor((prop[0]+prop[1])*lf))]
+    test_list = [file_list[indexes[i]]
+                 for i in range(floor((prop[0]+prop[1])*lf),
+                                floor((prop[0]+prop[1]+prop[2])*lf))]
+    return train_list, val_list, test_list
+
+
+def list_files_from_dir(directory="", extension=".ndpi"):
     # TODO> pasar a "utils.py"
     '''
-    lists ndpi files in cwd
+    lists files of extension <extension> in directory.
+    It also returns the path relative to the inputed directory
     '''
-    ndpi_list = os.listdir(directory)
-    return [ndpi_file for ndpi_file in ndpi_list
-            if ndpi_file.endswith(extension)]
+    # TODO> resolver el bug... cuando corro preprocess la variable glb 
+    #       tiene que tener "**/*" pero para q funcione con train.py tiene 
+    #       tiene que tener "/**/*"
+            
+    glb = glob.glob(directory + "**/*" + extension, recursive=True)
+
+    file_list = [os.path.basename(f) for f in glb]
+    dir_list = [os.path.dirname(f).replace(directory + "\\", "") for f in glb]
+    return file_list, dir_list
 
 
 def data_augmentation(directory="../split/X/1", flip_imgs=True):
@@ -35,8 +69,14 @@ def data_augmentation(directory="../split/X/1", flip_imgs=True):
     if flip=True the flipped version of the 4 images (original + 3)
     will be created as well.
     '''
+    # TODO: Add tqdm https://www.youtube.com/watch?v=qVHM3ly-Amg (already installed in isic)
     labels = {}
-    for img_name in list_files_from_dir(directory=directory, extension=".tif"):
+
+    print("Data augmentation commencing for images labelled 'epithelium'.")
+    print("flip_imgs={}".format(flip_imgs))
+
+    file_list, _ = list_files_from_dir(directory=directory, extension=".tif")
+    for img_name in tqdm(file_list):
 
         img = imread(directory + "/" + img_name)
 
@@ -96,7 +136,7 @@ def clean_split_files(directory="../split", lista=""):
 def call_ndpi_ndpa(filename):
     # TODO pasar a "utils.py"
     '''
-    Filename is the name of the ndpi file.
+    filename is the name of the ndpi file.
     OpenSlide requires the file to be in the cwd.
     the annotation must end in ".ndpi.ndpa".
     '''
@@ -116,6 +156,11 @@ def call_ndpi_ndpa(filename):
 
 
 def tile_is_background_2(image, threshold=5):
+    '''
+    returns True if tile (np array) is background. An <image> is classified
+    as background if std dev of pixel colors (gray scale, 0-255) is over
+    <threshold>.
+    '''
     is_bkgnd = False
     std = np.std(cvtColor(image, COLOR_RGB2GRAY))
     if std < threshold:
@@ -125,14 +170,15 @@ def tile_is_background_2(image, threshold=5):
 
 def tile_is_background_1(image, rng=(220, 240), threshold=0.9):
     '''
-    returns True if tile (np array) is not background. An <image> is classified
-    as background if the proportion of pixels within <rng> is over
-    <threshold>.
+    returns True if tile (np array) is background. An <image> is classified
+    as background if the proportion of pixels colors (gray scale, 0-255) 
+    within <rng> is over <threshold>.
 
     inputs:
      - image: numpy array corresponding to RGB image
      - rng: range of values to evaluate in histogram
-     - threshold: % over which tile is classified as bacground
+     - threshold: if (pixels in rng / total pixels)
+                is higher than threshold, images is classified as background
     '''
     is_bkgnd = False
     hist = calcHist(images=[cvtColor(image, COLOR_RGB2GRAY)],
@@ -177,7 +223,7 @@ def rectangle_split_ndpi_ndpa(ndp_image, image_annotation_list, split_height,
     bkgnd_tiles_counter = 0
     tile_class = "0"
 
-    for h in range(n_ver):
+    for h in tqdm(range(n_ver)):
         if h == n_ver-1:
             height = size_ver - (n_ver - 1) * split_height
 
@@ -210,7 +256,7 @@ def rectangle_split_ndpi_ndpa(ndp_image, image_annotation_list, split_height,
                 if bkgnd_tiles_counter < n_bkgnd_tiles:
                     labels[split_filename] = 2
                     bkgnd_tiles_counter += 1
-                    tile_class = "background"
+                    tile_class = "-1"
                 else:
                     continue
             else:
@@ -243,7 +289,7 @@ def rectangle_split_ndpi(ndp_image, split_width, split_height,
     - tohsv:
 
     Observations:
-    - Images are saved in the "../data/split/X" folder with .tif extension
+    - Images are saved in the "../split/X" folder with .tif extension
 
     '''
     width = split_width
@@ -284,9 +330,9 @@ def rectangle_split_ndpi(ndp_image, split_width, split_height,
 
             dimensions = "_({},{})_{}x{}".format(w*width, h*height,
                                                  width, height)
-            filename = filename.replace(".ndpi", "") + dimensions
+            split_filename = filename.replace(".ndpi", "") + dimensions
 
-            save_np_as_image(reg, path + "/" + filename + ".tif")
+            save_np_as_image(reg, path + "/" + split_filename + ".tif")
 
 
 def rectangle_split_ndpa(image_annotation_list, split_width,
@@ -363,60 +409,42 @@ def main(clean=False):
     for now, this function grabs a ndpi image, splits the image and the mask
     and saves the splits in the split directory.
     '''
-    os.chdir("data/raw")
+    # os.chdir("data/raw")
+    os.chdir("data/test")
 
-    archivo = ["S04_3441_p16_RTU_ER1_20 - 2016-04-12 15.45.38.ndpi"]
-    for ndpi_file in archivo:
-    # for ndpi_file in list_files_from_dir(extension=".ndpi"):
+    # archivo = ["S04_3441_p16_RTU_ER1_20 - 2016-04-12 15.45.38.ndpi"]
+    # for ndpi_file in archivo:
+
+    file_list, _ = list_files_from_dir(extension=".ndpi")
+    print(file_list)
+
+    for ndpi_file in file_list:
         print(ndpi_file)
         ndp_image, image_annotation_list = call_ndpi_ndpa(ndpi_file)
-        # width, height = floor(ndp_image.width_lvl_0/4), floor(ndp_image.height_lvl_0/4)
-        # width, height = 128, 9600
-        # rectangle_split_ndpa(image_annotation_list=image_annotation_list,
-        #                      split_width=width,
-        #                      split_height=height,
-        #                      value_ones=1)
-        # rectangle_split_ndpi(ndp_image=ndp_image,
-        #                      split_width=width,
-        #                      split_height=height,
-        #                      tohsv=False)
+        width, height = floor(ndp_image.width_lvl_0/4), floor(ndp_image.height_lvl_0/4)
+        rectangle_split_ndpi(ndp_image=ndp_image,
+                             split_width=width,
+                             split_height=height,
+                             tohsv=False,
+                             path="grandes_RGB")
 
-        # width, height = 9600, 128
-        # rectangle_split_ndpa(image_annotation_list=image_annotation_list,
-        #                      split_width=width,
-        #                      split_height=height,
-        #                      value_ones=1)
-        # rectangle_split_ndpi(ndp_image=ndp_image,
-        #                      split_width=width,
-        #                      split_height=height,
-        #                      tohsv=True)
-        width, height = 128, 128
-        rectangle_split_ndpi_ndpa(ndp_image=ndp_image,
-                                  image_annotation_list=image_annotation_list,
-                                  split_height=height,
-                                  split_width=width,
-                                  tohsv=False,
-                                  path_ndpi="../split/X",
-                                  path_ndpa="../split/mask")
+        # width, height = 128, 128
+        # rectangle_split_ndpi_ndpa(ndp_image=ndp_image,
+        #                           image_annotation_list=image_annotation_list,
+        #                           split_height=height,
+        #                           split_width=width,
+        #                           tohsv=False,
+        #                           path_ndpi="../split/X",
+        #                           path_ndpa="../split/mask")
 
     data_augmentation()
 
-
-    # if clean:
-    #     clean_split_files()
+    if clean:
+        clean_split_files()
 
 
 if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
-
-    try:
-        shutil.rmtree("data/split/X/")
-    except:
-        pass
-
-    create_directory("data/split/X/")
-    create_directory("data/split/X/background/", # background
-                     "data/split/X/1/",  # epithelium
-                     "data/split/X/0/")  # non-epithelium
+    # build_dirs()
 
     main(clean=False)

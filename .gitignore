@@ -6,11 +6,14 @@
 *.tif
 *.npy
 *.h5
+*.txt
+*.png
 
 __pycache__/
 .vscode/
 notebooks/
 extras/
+archive/
 
 
 tests.py

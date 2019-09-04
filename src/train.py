@@ -82,19 +82,9 @@ def convert_mask_to_labels(mask, tile_height, tile_width):
     return y
 
 
-def create_filename_list():
-    # TODO>
-    '''
-    creates a dictionary of files from the images in the "split" directory
-    '''
-    filename_list = os.listdir("data/split/X")
-    filename_list.remove(".gitkeep")
-    return filename_list
-
-
 # https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
 
-class ImageGenerator(tf.keras.utils.Sequence):
+class ImageGenerator1(tf.keras.utils.Sequence):
     def __init__(self, list_IDs, tile_side, batch_size=1,
                  shuffle=True):
         self.list_IDs = list_IDs
@@ -146,7 +136,63 @@ class ImageGenerator(tf.keras.utils.Sequence):
         return shuffle(X, y)
 
 
-def basic_dl_model(tile_side, training_generator, epochs=5):
+class ImageGenerator2(tf.keras.utils.Sequence):
+    def __init__(self, list_IDs, image_label_directory, tile_side=128,
+                 batch_size=100, shuffle=True):
+        self.list_IDs = list_IDs
+        self.image_label_directory = image_label_directory
+        self.tile_side = tile_side
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        self.on_epoch_end()
+
+    def __len__(self):
+        return int(np.floor(len(self.list_IDs) / self.batch_size))
+        # return len(self.list_IDs)
+
+    def __getitem__(self, i):
+        # generate indexes of the batch
+        indexes = self.indexes[i*self.batch_size: (i+1)*self.batch_size]
+
+        list_IDs_temp = [self.list_IDs[k] for k in indexes]
+        X, y = self.__data_generation(list_IDs_temp)
+        return X, y
+
+    def on_epoch_end(self):
+        self.indexes = np.arange(len(self.list_IDs))
+        if self.shuffle:
+            np.random.shuffle(self.indexes)
+
+    def __data_generation(self, list_IDs_temp):
+        '''
+        generates batches of shape:
+        (n_samples, tile_side, tile_side, n_channels)
+
+        For now it might not be necesary, but it will be when we want to
+        preprocess the images before feeding them.
+
+        input:
+         - list_IDs_temp: list with image filenames. For now, it only consists
+           on a list with one element
+        '''
+        
+        X = np.empty((self.batch_size, self.tile_side, self.tile_side, 3))
+        y = np.empty((self.batch_size), dtype=int)
+
+        for i, fname in enumerate(list_IDs_temp):
+            X[i] = normalize_image(imread("data/split/X/" +
+                                          self.image_label_directory[fname] +
+                                          "/" + fname))
+            y[i] = int(self.image_label_directory[fname].replace("-1", "0"))
+
+        # print("Shape of X: " + str(X.shape))
+        # print("Length of y: " + str(len(y)))
+
+        return X, y
+
+
+def basic_dl_model(tile_side, training_generator, validation_generator=None,
+                   epochs=5):
 
     model = tf.keras.models.Sequential([
         tf.keras.layers.Conv2D(filters=128, kernel_size=(3, 3),
@@ -172,11 +218,12 @@ def basic_dl_model(tile_side, training_generator, epochs=5):
                            metrics.Recall()])
 
     model.fit_generator(generator=training_generator,
+                        validation_data=validation_generator,
                         epochs=epochs,
                         use_multiprocessing=True,
                         workers=6,
                         class_weight={0: 1.,
-                                      1: 10.})
+                                      1: 1.3})
     return model
 
 
@@ -190,12 +237,25 @@ def main():
     Generator from Keras
     '''
 
-    list_IDs = create_filename_list()
-    tile_side = 128
-    training_generator = ImageGenerator(list_IDs=list_IDs,
-                                        tile_side=tile_side)
+    file_list, dir_list = list_files_from_dir(directory="data/split/X",
+                                              extension=".tif")
+    train_list, val_list, _ = train_validation_test_partition(file_list)
+    ild = {file_list[i]: dir_list[i] for i in range(len(dir_list))}
 
-    model = basic_dl_model(tile_side, training_generator)
+    tile_side = 128
+    training_generator = ImageGenerator2(list_IDs=train_list,
+                                         image_label_directory=ild,
+                                         tile_side=tile_side,
+                                         batch_size=64)
+
+    validation_generator = ImageGenerator2(list_IDs=val_list,
+                                           image_label_directory=ild,
+                                           tile_side=tile_side,
+                                           batch_size=64)
+
+    model = basic_dl_model(tile_side, 
+                           training_generator=training_generator,
+                           validation_generator=validation_generator)
 
     model.save("models/" + time.strftime("%Y%m%d-%H%M") +
                "_basic_dl_model_20_epochs_9pics.h5")
