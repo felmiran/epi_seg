@@ -1,6 +1,7 @@
 from skimage import util
 import os
-from preprocess import *
+from utils import list_files_from_dir, normalize_image, \
+    train_validation_test_partition
 from cv2 import imread, IMREAD_GRAYSCALE
 import numpy as np
 from matplotlib import pyplot as plt
@@ -175,7 +176,7 @@ class ImageGenerator2(tf.keras.utils.Sequence):
          - list_IDs_temp: list with image filenames. For now, it only consists
            on a list with one element
         '''
-        
+
         X = np.empty((self.batch_size, self.tile_side, self.tile_side, 3))
         y = np.empty((self.batch_size), dtype=int)
 
@@ -221,7 +222,7 @@ def basic_dl_model(tile_side, training_generator, validation_generator=None,
                         validation_data=validation_generator,
                         epochs=epochs,
                         use_multiprocessing=True,
-                        workers=6,
+                        workers=8,
                         class_weight={0: 1.,
                                       1: 1.3})
     return model
@@ -239,7 +240,10 @@ def main():
 
     file_list, dir_list = list_files_from_dir(directory="data/split/X",
                                               extension=".tif")
-    train_list, val_list, _ = train_validation_test_partition(file_list)
+    train_list, val_list, _ = train_validation_test_partition(file_list,
+                                                              prop=(0.8,
+                                                                    0.2,
+                                                                    0.0))
     ild = {file_list[i]: dir_list[i] for i in range(len(dir_list))}
 
     tile_side = 128
@@ -253,7 +257,7 @@ def main():
                                            tile_side=tile_side,
                                            batch_size=64)
 
-    model = basic_dl_model(tile_side, 
+    model = basic_dl_model(tile_side,
                            training_generator=training_generator,
                            validation_generator=validation_generator)
 

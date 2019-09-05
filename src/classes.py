@@ -1,9 +1,8 @@
+import os
 import sys
-# sys.path.append('D:/felipe/software_projects/epi_seg/openslide/openslide-win64-20171122/bin')
 
 import xml.etree.ElementTree as ET
 from openslide import OpenSlide
-import os
 from PIL import Image, ImageDraw
 import numpy as np
 import matplotlib.pyplot as plt
@@ -275,48 +274,19 @@ class NDPAnnotationPoint(Point):
 
         image_prop_obj = self.ndp_image
 
-        # coordenada del punto (0,0) de la imagen de interes, tomando como eje de referencia
-        # el centro de la slide completa. se pasa la coordenada de nm a pixel
-        slide_center_x = image_prop_obj.offset_x / (image_prop_obj.mpp_x * 1000)
-        slide_center_y = image_prop_obj.offset_y / (image_prop_obj.mpp_y * 1000)
-        
+        # coordenada del punto (0,0) de la imagen de interes, tomando como eje
+        # de referencia el centro de la slide completa. se pasa la coordenada
+        # de nm a pixel
+        slide_center_x = image_prop_obj.offset_x / (image_prop_obj.mpp_x*1000)
+        slide_center_y = image_prop_obj.offset_y / (image_prop_obj.mpp_y*1000)
+
         x_0 = slide_center_x - image_prop_obj.width_lvl_0 / 2
         y_0 = slide_center_y - image_prop_obj.height_lvl_0 / 2
 
-        # al restar las coordenadas del punto de interes con las del punto (0,0) de la imagen, 
-        # se obtiene la coordenada del punto de interes respecto al eje (0,0)
+        # al restar las coordenadas del punto de interes con las del punto
+        # (0,0) de la imagen, se obtiene la coordenada del punto de interes
+        # respecto al eje (0,0)
         x = self.coord[0] / (image_prop_obj.mpp_x * 1000) - x_0
         y = self.coord[1] / (image_prop_obj.mpp_y * 1000) - y_0
 
         return (round(x), round(y))
-
-
-def extract_region(np_array, square_top_left_corner, square_height,
-                   square_width, draw_region=False):
-
-    '''
-    square_top_left_corner: (x,y) tuple
-    square_height and square_width: height and width of ROI
-    draw_region: if true, the extracted ROI will be previewed
-    '''
-    region = np_array[square_top_left_corner[1]:
-                      square_top_left_corner[1]+square_height,
-                      square_top_left_corner[0]:
-                      square_top_left_corner[0]+square_width]
-
-    if draw_region:
-        plt.figure()
-        plt.imshow(region*255, aspect='auto')
-        plt.show()
-
-    return region
-
-
-def save_np_as_image(numpy_array, filename):
-    im = Image.fromarray(np.uint8(numpy_array))
-    im.save(filename)
-    return
-
-
-def PIL_to_numpy(PIL_obj):
-    pass
