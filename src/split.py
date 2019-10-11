@@ -214,6 +214,9 @@ def main(clean=False):
     os.chdir("data/test")
 
     file_list, _ = list_files_from_dir(extension=".ndpi")
+    for f in file_list:
+        print(f)
+        
     print(file_list)
 
     for ndpi_file in file_list:

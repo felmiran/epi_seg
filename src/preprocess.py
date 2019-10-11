@@ -10,7 +10,7 @@ import json
 from tqdm import tqdm
 
 
-def data_augmentation(directory="../split/X/1", flip_imgs=True):
+def data_augmentation(directory="split/X/1", flip_imgs=True):
     '''
     generates extra images for eah image in directory: 3 addicional
     images corresponding to 90, 180, 270 rotations.
@@ -56,7 +56,7 @@ def data_augmentation(directory="../split/X/1", flip_imgs=True):
             save_np_as_image(cvtColor(img_270f, COLOR_BGR2RGB),
                              directory + "/270f_" + img_name)
 
-    json.dump(labels, open("../split/X/augmentations.txt", "w"))
+    json.dump(labels, open("split/X/augmentations.txt", "w"))
 
     pass
 
@@ -200,28 +200,34 @@ def main():
     for now, this function grabs a ndpi image, splits the image and the mask
     and saves the splits in the split directory.
     '''
-    os.chdir("data/raw")
+    train_dir = "data/train"
+    os.chdir(train_dir)
+    print(os.getcwd())
+    build_dirs(train_dir)
 
     file_list, _ = list_files_from_dir(extension=".ndpi")
-    print(file_list)
+    
+    for f in file_list:
+        print(f)
+    
     width, height = 128, 128
+    
     print("Tile size: {}x{}".format(height, width))
 
     for ndpi_file in file_list:
         print(ndpi_file)
+        ndp_image, image_annotation_list = call_ndpi_ndpa(ndpi_file)
         rectangle_split_ndpi_ndpa(ndp_image=ndp_image,
                                   image_annotation_list=image_annotation_list,
                                   split_height=height,
                                   split_width=width,
                                   tohsv=False,
-                                  path_ndpi="../split/X",
-                                  path_ndpa="../split/mask")
+                                  path_ndpi="split/X",
+                                  path_ndpa="split/mask")
 
     data_augmentation()
 
 
 if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
-    # build_dirs()
-
     main()

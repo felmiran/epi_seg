@@ -2,6 +2,7 @@ import os
 
 from train import *
 from preprocess import *
+from metrics import *
 import tensorflow as tf
 import numpy as np
 from cv2 import *
@@ -17,10 +18,13 @@ def evaluate_model(model, ndpi_list):
 
 # Load model
 print(os.getcwd())
-model_filename = "20190823-1531_basic_dl_model_20_epochs_9pics.h5"
-model = tf.keras.models.load_model("src/models/" + model_filename)
+model_filename = "20191011-0759_basic_dl_model_50_epochs_9pics.h5"
+# model = tf.keras.models.load_model("src/models/" + model_filename)
+model = tf.keras.models.load_model("src/models/" + model_filename, 
+                                   custom_objects={'precision_m': precision_m,
+                                                   'recall_m': recall_m,
+                                                   'f1_m': f1_m})
 # print(model.get_weights())
-
 
 
 # Evaluate model on data
@@ -63,7 +67,7 @@ for image_filename in file_list:
     # plt.imshow(results, aspect='auto')
     # plt.show()
 
-    save_np_as_image(results*255, image_dir + "/" + image_filename + ".png")
+    save_np_as_image(results*255, image_dir + "/" + image_filename + "_2.png")
 
 
 

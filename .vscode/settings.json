@@ -1,6 +1,6 @@
 {
-    "python.pythonPath": "C:\\Users\\felipe\\Anaconda3\\envs\\isic\\python.exe",
+    "python.pythonPath": "C:\\Users\\felipe\\.conda\\envs\\episeg\\python.exe",
     "python.linting.pylintEnabled": false,
-    "python.linting.pep8Enabled": true,
+    "python.linting.pycodestyleEnabled": true,
     "python.linting.enabled": true
 }

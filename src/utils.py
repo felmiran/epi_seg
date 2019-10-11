@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from math import floor
 from cv2 import cvtColor, COLOR_RGB2HSV, normalize, CV_32F, NORM_MINMAX
+from classes import NDPImage, ImageAnnotationList
 
 
 def create_directory(*args):
@@ -16,16 +17,16 @@ def create_directory(*args):
         os.mkdir(os.path.dirname(directory))
 
 
-def build_dirs():
+def build_dirs(directory):
     try:
-        shutil.rmtree("data/split/X/")
+        shutil.rmtree("split/X/")
     except:
         pass
 
-    create_directory("data/split/X/")
-    create_directory("data/split/X/-1/",  # background
-                     "data/split/X/1/",  # epithelium
-                     "data/split/X/0/")  # non-epithelium
+    create_directory("split/X/")
+    create_directory("split/X/-1/",  # background
+                     "split/X/1/",  # epithelium
+                     "split/X/0/")  # non-epithelium
 
 
 def list_files_from_dir(directory="", extension=".ndpi"):
@@ -88,8 +89,12 @@ def normalize_image(image):
     '''
     image corresponds to a numpy array.
     '''
-    return normalize(image, None, alpha=0., beta=1.,
-                     dtype=CV_32F, norm_type=NORM_MINMAX)
+    # return normalize(image, None, alpha=0., beta=1.,
+    #                  dtype=CV_32F, norm_type=NORM_MINMAX)
+    image = image / 255.
+    image -= 0.5
+    image *= 2.
+    return image
 
 
 def train_validation_test_partition(file_list, prop=(0.6, 0.4, 0.0)):

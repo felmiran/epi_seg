@@ -2,11 +2,12 @@ from skimage import util
 import os
 from utils import list_files_from_dir, normalize_image, \
     train_validation_test_partition
+from metrics import *
 from cv2 import imread, IMREAD_GRAYSCALE
 import numpy as np
 from matplotlib import pyplot as plt
 import tensorflow as tf
-from tensorflow.keras import metrics
+# from tensorflow.keras import metrics
 from math import floor
 from sklearn.utils import shuffle
 import time
@@ -121,9 +122,9 @@ class ImageGenerator1(tf.keras.utils.Sequence):
          - list_IDs_temp: list with image filenames. For now, it only consists
            on a list with one element
         '''
-        image = imread("data/split/X/" + list_IDs_temp[0])
+        image = imread("data/train/split/X/" + list_IDs_temp[0])
         image = normalize_image(image)
-        mask = imread("data/split/mask/" + list_IDs_temp[0],
+        mask = imread("data/train/split/mask/" + list_IDs_temp[0],
                       IMREAD_GRAYSCALE)
 
         X = convert_image_to_stack_of_tiles(image, self.tile_side,
@@ -181,7 +182,7 @@ class ImageGenerator2(tf.keras.utils.Sequence):
         y = np.empty((self.batch_size), dtype=int)
 
         for i, fname in enumerate(list_IDs_temp):
-            X[i] = normalize_image(imread("data/split/X/" +
+            X[i] = normalize_image(imread("data/train/split/X/" +
                                           self.image_label_directory[fname] +
                                           "/" + fname))
             y[i] = int(self.image_label_directory[fname].replace("-1", "0"))
@@ -215,8 +216,8 @@ def basic_dl_model(tile_side, training_generator, validation_generator=None,
     ])
 
     model.compile(optimizer='adam', loss='binary_crossentropy',
-                  metrics=['acc', metrics.Accuracy(), metrics.Precision(),
-                           metrics.Recall()])
+                  metrics=['acc', precision_m,
+                           recall_m, f1_m])
 
     model.fit_generator(generator=training_generator,
                         validation_data=validation_generator,
@@ -238,8 +239,12 @@ def main():
     Generator from Keras
     '''
 
-    file_list, dir_list = list_files_from_dir(directory="data/split/X",
+    file_list, dir_list = list_files_from_dir(directory="data/train/split/X",
                                               extension=".tif")
+
+    print(len(file_list))
+    print(file_list[:10])
+
     train_list, val_list, _ = train_validation_test_partition(file_list,
                                                               prop=(0.8,
                                                                     0.2,
@@ -250,19 +255,24 @@ def main():
     training_generator = ImageGenerator2(list_IDs=train_list,
                                          image_label_directory=ild,
                                          tile_side=tile_side,
-                                         batch_size=64)
+                                         batch_size=128)
 
     validation_generator = ImageGenerator2(list_IDs=val_list,
                                            image_label_directory=ild,
                                            tile_side=tile_side,
-                                           batch_size=64)
+                                           batch_size=128)
 
-    model = basic_dl_model(tile_side,
-                           training_generator=training_generator,
-                           validation_generator=validation_generator)
 
-    model.save("models/" + time.strftime("%Y%m%d-%H%M") +
-               "_basic_dl_model_20_epochs_9pics.h5")
+    epochs = [5, 20, 50]
+
+    for e in epochs:
+        model = basic_dl_model(tile_side,
+                            training_generator=training_generator,
+                            validation_generator=validation_generator,
+                            epochs=e)
+
+        model.save("models/" + time.strftime("%Y%m%d-%H%M") +
+                "_basic_dl_model_{}_epochs_9pics_absnorm.h5".format(e))
 
 
 if __name__ == "__main__":
