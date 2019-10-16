@@ -193,18 +193,25 @@ class ImageGenerator2(tf.keras.utils.Sequence):
         return X, y
 
 
-def basic_dl_model(tile_side, training_generator, validation_generator=None,
-                   epochs=5):
+class CustomSaver(tf.keras.callbacks.Callback):
+    def __init__(self, model_name, tile_side):
+        self.model_name = model_name
+        self.tile_side = tile_side
+        super().__init__()
+    def on_epoch_end(self, epoch, logs={}):
+        if epoch % 10 == 0:
+            self.model.save(self.model_name.format(epoch, self.tile_side))
+
+
+def basic_dl_model(tile_side, saver, training_generator, validation_generator=None,
+                   class_weight={0: 1., 1: 1.}, epochs=5):
 
     model = tf.keras.models.Sequential([
         tf.keras.layers.Conv2D(filters=128, kernel_size=(3, 3),
                                input_shape=(tile_side, tile_side, 3),
                                data_format="channels_last", activation='relu'),
         tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
-        tf.keras.layers.Conv2D(filters=128, kernel_size=(3, 3),
-                               data_format="channels_last", activation='relu'),
-        tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
-        tf.keras.layers.Conv2D(filters=128, kernel_size=(3, 3),
+        tf.keras.layers.Conv2D(filters=256, kernel_size=(3, 3),
                                data_format="channels_last", activation='relu'),
         tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
         tf.keras.layers.Conv2D(filters=128, kernel_size=(3, 3),
@@ -212,8 +219,12 @@ def basic_dl_model(tile_side, training_generator, validation_generator=None,
         tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dense(128, activation='relu'),
+        tf.keras.layers.Dense(64, activation='relu'),
         tf.keras.layers.Dense(1, activation='sigmoid'),
     ])
+
+
+
 
     model.compile(optimizer='adam', loss='binary_crossentropy',
                   metrics=['acc', precision_m,
@@ -221,11 +232,11 @@ def basic_dl_model(tile_side, training_generator, validation_generator=None,
 
     model.fit_generator(generator=training_generator,
                         validation_data=validation_generator,
+                        callbacks=[saver],
                         epochs=epochs,
                         use_multiprocessing=True,
                         workers=8,
-                        class_weight={0: 1.,
-                                      1: 1.3})
+                        class_weight=class_weight)
     return model
 
 
@@ -238,42 +249,48 @@ def main():
     converts image to stack and runs training of DL model by use of custom
     Generator from Keras
     '''
-
-    file_list, dir_list = list_files_from_dir(directory="data/train/split/X",
+    
+    model_name = "models/" + time.strftime("%Y%m%d") + \
+                 "_basic_dl_model_{}_epochs_9pics_absnorm_x20_{}px.h5"
+    
+    file_list, dir_list, counts = list_files_from_dir(directory="data/train/split/X",
                                               extension=".tif")
 
-    print(len(file_list))
-    print(file_list[:10])
+    print("\n\n\nNumber of elements in file list: " + str(len(file_list)) +"\n\n")
 
     train_list, val_list, _ = train_validation_test_partition(file_list,
                                                               prop=(0.8,
                                                                     0.2,
                                                                     0.0))
+    
     ild = {file_list[i]: dir_list[i] for i in range(len(dir_list))}
 
-    tile_side = 128
+    tile_side = 64
+    saver = CustomSaver(model_name=model_name, tile_side=tile_side)
     training_generator = ImageGenerator2(list_IDs=train_list,
                                          image_label_directory=ild,
                                          tile_side=tile_side,
                                          batch_size=128)
-
     validation_generator = ImageGenerator2(list_IDs=val_list,
                                            image_label_directory=ild,
                                            tile_side=tile_side,
                                            batch_size=128)
+    
+    class_weight = {0: (counts["-1"]+counts["0"])/counts["1"], 1: 1.}
+    
 
 
-    epochs = [5, 20, 50]
-
+    
+    epochs = [60]
     for e in epochs:
         model = basic_dl_model(tile_side,
-                            training_generator=training_generator,
-                            validation_generator=validation_generator,
-                            epochs=e)
+                               saver=saver,
+                               training_generator=training_generator,
+                               validation_generator=validation_generator,
+                               class_weight=class_weight,
+                               epochs=e)
 
-        model.save("models/" + time.strftime("%Y%m%d-%H%M") +
-                "_basic_dl_model_{}_epochs_9pics_absnorm.h5".format(e))
-
+        model.save(model_name.format(e, tile_side))
 
 if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.realpath(__file__)))

@@ -7,6 +7,7 @@ import numpy as np
 from math import floor
 from cv2 import cvtColor, COLOR_RGB2HSV, normalize, CV_32F, NORM_MINMAX
 from classes import NDPImage, ImageAnnotationList
+from collections import Counter
 
 
 def create_directory(*args):
@@ -35,15 +36,17 @@ def list_files_from_dir(directory="", extension=".ndpi"):
     lists files of extension <extension> in directory.
     It also returns the path relative to the inputed directory
     '''
-    # TODO> resolver el bug... cuando corro preprocess la variable glb
+    # TODO> resolver el bug... cuando corro preprocess o split la variable glb
     #       tiene que tener "**/*" pero para q funcione con train.py tiene
     #       tiene que tener "/**/*"
 
-    glb = glob.glob(directory + "/**/*" + extension, recursive=True)
+    glb = glob.glob(directory + "**/*" + extension, recursive=True)
 
     file_list = [os.path.basename(f) for f in glb]
     dir_list = [os.path.dirname(f).replace(directory + "\\", "") for f in glb]
-    return file_list, dir_list
+    counts = dict(Counter(dir_list))
+
+    return file_list, dir_list, counts
 
 
 def save_np_as_image(np_array, filename):

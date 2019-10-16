@@ -22,7 +22,7 @@ def data_augmentation(directory="split/X/1", flip_imgs=True):
     print("Data augmentation commencing for images labelled 'epithelium'.")
     print("flip_imgs={}".format(flip_imgs))
 
-    file_list, _ = list_files_from_dir(directory=directory, extension=".tif")
+    file_list, _, _ = list_files_from_dir(directory=directory, extension=".tif")
     for img_name in tqdm(file_list):
 
         img = imread(directory + "/" + img_name)
@@ -141,6 +141,8 @@ def rectangle_split_ndpi_ndpa(ndp_image, image_annotation_list, split_height,
     bkgnd_tiles_counter = 0
     tile_class = "0"
 
+    lvl=1
+
     for h in tqdm(range(n_ver)):
         if h == n_ver-1:
             height = size_ver - (n_ver - 1) * split_height
@@ -149,9 +151,9 @@ def rectangle_split_ndpi_ndpa(ndp_image, image_annotation_list, split_height,
             if w == n_hor-1:
                 width = size_hor - (n_hor - 1) * split_width
 
-            reg_ndpi = np.array(ndp_image.read_region(location=(w * width,
-                                                                h * height),
-                                                      level=0, size=(width,
+            reg_ndpi = np.array(ndp_image.read_region(location=(w * width * (lvl+1),
+                                                                h * height * (lvl+1)),
+                                                      level=lvl, size=(width,
                                                                      height)
                                                       ))[:, :, :3]
 
@@ -205,12 +207,12 @@ def main():
     print(os.getcwd())
     build_dirs(train_dir)
 
-    file_list, _ = list_files_from_dir(extension=".ndpi")
+    file_list, _, _ = list_files_from_dir(extension=".ndpi")
     
     for f in file_list:
         print(f)
     
-    width, height = 128, 128
+    width, height = 64, 64
     
     print("Tile size: {}x{}".format(height, width))
 
@@ -221,7 +223,7 @@ def main():
                                   image_annotation_list=image_annotation_list,
                                   split_height=height,
                                   split_width=width,
-                                  tohsv=False,
+                                  tohsv=True,
                                   path_ndpi="split/X",
                                   path_ndpa="split/mask")
 

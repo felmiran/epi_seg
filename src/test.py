@@ -3,6 +3,7 @@ import os
 from train import *
 from preprocess import *
 from metrics import *
+from utils import normalize_image
 import tensorflow as tf
 import numpy as np
 from cv2 import *
@@ -18,7 +19,7 @@ def evaluate_model(model, ndpi_list):
 
 # Load model
 print(os.getcwd())
-model_filename = "20191011-0759_basic_dl_model_50_epochs_9pics.h5"
+model_filename = "20191014-1225_basic_dl_model_40_epochs_9pics_absnorm_x20_64px.h5"
 # model = tf.keras.models.load_model("src/models/" + model_filename)
 model = tf.keras.models.load_model("src/models/" + model_filename, 
                                    custom_objects={'precision_m': precision_m,
@@ -36,10 +37,12 @@ model = tf.keras.models.load_model("src/models/" + model_filename,
 #                                        size=(ndp_image.width_lvl_0,
 #                                              ndp_image.height_lvl_0)))
 # val_X = cv2.cvtColor(val_X[:, :, :3], cv2.COLOR_RGB2BGR)
+tile_size = 64
+resolution = "x20"
 
+image_dir = "src/data/test/grandes_RGB/{}".format(resolution)
 
-image_dir = "src/data/test/grandes_RGB"
-file_list, _ = list_files_from_dir(directory=image_dir, extension=".tif")
+file_list, _, _ = list_files_from_dir(directory=image_dir, extension=".tif")
 
 # image_filename = "S04_2819_p16_RTU_ER1_20 - 2016-04-12 15.39.25_(30720,16384)_10240x8192.tif"
 
@@ -50,10 +53,10 @@ for image_filename in file_list:
 
     val_X = normalize_image(val_X)
 
-    n_ver = floor(val_X.shape[0] / 128)
-    n_hor = floor(val_X.shape[1] / 128)
+    n_ver = floor(val_X.shape[0] / tile_size)
+    n_hor = floor(val_X.shape[1] / tile_size)
 
-    val_X = convert_image_to_stack_of_tiles(val_X, 128, 128)
+    val_X = convert_image_to_stack_of_tiles(val_X, tile_size, tile_size)
 
 
     # val_X = np.load("src/data/test/val_X.npy")
@@ -67,7 +70,8 @@ for image_filename in file_list:
     # plt.imshow(results, aspect='auto')
     # plt.show()
 
-    save_np_as_image(results*255, image_dir + "/" + image_filename + "_2.png")
+    save_np_as_image(results*255, image_dir + "/" + image_filename + "_40_epochs_9pics_{}_{}px.png".format(resolution, tile_size))
+
 
 
 

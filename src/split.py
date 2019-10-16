@@ -22,7 +22,7 @@ def data_augmentation(directory="../split/X/1", flip_imgs=True):
     print("Data augmentation commencing for images labelled 'epithelium'.")
     print("flip_imgs={}".format(flip_imgs))
 
-    file_list, _ = list_files_from_dir(directory=directory, extension=".tif")
+    file_list, _, _ = list_files_from_dir(directory=directory, extension=".tif")
     for img_name in tqdm(file_list):
 
         img = imread(directory + "/" + img_name)
@@ -131,7 +131,7 @@ def rectangle_split_ndpi(ndp_image, split_width, split_height,
     print("n_hor: " + str(n_hor))
     print("n_ver: " + str(n_ver))
 
-    lvl = 0
+    lvl = 1
 
     for h in tqdm(range(n_ver)):
         if h == n_ver-1:
@@ -141,8 +141,8 @@ def rectangle_split_ndpi(ndp_image, split_width, split_height,
             if w == n_hor-1:
                 width = size_hor - (n_hor - 1) * split_width
 
-            reg = np.array(ndp_image.read_region(location=(w * width,
-                                                           h * height),
+            reg = np.array(ndp_image.read_region(location=(w * width * (lvl+1),
+                                                           h * height * (lvl+1)),
                                                  level=lvl,
                                                  size=(width, height))
                            )[:, :, :3]
@@ -213,7 +213,7 @@ def main(clean=False):
     '''
     os.chdir("data/test")
 
-    file_list, _ = list_files_from_dir(extension=".ndpi")
+    file_list, _, _ = list_files_from_dir(extension=".ndpi")
     for f in file_list:
         print(f)
         

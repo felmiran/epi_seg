@@ -42,8 +42,8 @@ class NDPImage(OpenSlide):
         offset_y = float(self.properties['hamamatsu.YOffsetFromSlideCentre'])
         mpp_x = float(self.properties['openslide.mpp-x'])
         mpp_y = float(self.properties['openslide.mpp-y'])
-        width_lvl_0 = int(self.properties['openslide.level[0].width'])
-        height_lvl_0 = int(self.properties['openslide.level[0].height'])
+        width_lvl_0 = int(self.properties['openslide.level[1].width'])
+        height_lvl_0 = int(self.properties['openslide.level[1].height'])
         return offset_x, offset_y, mpp_x, mpp_y, width_lvl_0, height_lvl_0
 
     def print_image_properties(self):
@@ -277,8 +277,10 @@ class NDPAnnotationPoint(Point):
         # coordenada del punto (0,0) de la imagen de interes, tomando como eje
         # de referencia el centro de la slide completa. se pasa la coordenada
         # de nm a pixel
-        slide_center_x = image_prop_obj.offset_x / (image_prop_obj.mpp_x*1000)
-        slide_center_y = image_prop_obj.offset_y / (image_prop_obj.mpp_y*1000)
+        lvl=1
+
+        slide_center_x = image_prop_obj.offset_x / (image_prop_obj.mpp_x*1000*(1+lvl))
+        slide_center_y = image_prop_obj.offset_y / (image_prop_obj.mpp_y*1000*(1+lvl))
 
         x_0 = slide_center_x - image_prop_obj.width_lvl_0 / 2
         y_0 = slide_center_y - image_prop_obj.height_lvl_0 / 2
@@ -286,7 +288,7 @@ class NDPAnnotationPoint(Point):
         # al restar las coordenadas del punto de interes con las del punto
         # (0,0) de la imagen, se obtiene la coordenada del punto de interes
         # respecto al eje (0,0)
-        x = self.coord[0] / (image_prop_obj.mpp_x * 1000) - x_0
-        y = self.coord[1] / (image_prop_obj.mpp_y * 1000) - y_0
+        x = self.coord[0] / (image_prop_obj.mpp_x *1000*(1+lvl)) - x_0
+        y = self.coord[1] / (image_prop_obj.mpp_y *1000*(1+lvl)) - y_0
 
         return (round(x), round(y))
