@@ -3,7 +3,7 @@ from classes import NDPImage, ImageAnnotationList
 from utils import save_np_as_image, extract_region, build_dirs, \
     list_files_from_dir, to_hsv, normalize_image, call_ndpi_ndpa
 from cv2 import cvtColor, COLOR_RGB2HSV, COLOR_RGB2GRAY, COLOR_BGR2RGB, \
-    NORM_MINMAX, imread, calcHist, transpose, flip
+    NORM_MINMAX, imread, calcHist, transpose, flip, Laplacian, CV_64F
 from math import ceil, floor
 import numpy as np
 import json
@@ -85,22 +85,26 @@ def tile_is_background_2(image, threshold=5):
     return std, is_bkgnd
 
 
-def tile_is_background_1(image, rng=(220, 240), threshold=0.9):
+def tile_is_background_1(image, threshold=0.85):
     '''
     returns True if tile (np array) is background. An <image> is classified
-    as background if the proportion of pixels colors (gray scale, 0-255)
-    within <rng> is over <threshold>.
+    as background if the proportion of pixel colors (gray scale, 0-255)
+    within a range of +-10 from the histogram mode is over <threshold>.
 
     inputs:
      - image: numpy array corresponding to RGB image
-     - rng: range of values to evaluate in histogram
      - threshold: if (pixels in rng / total pixels)
                 is higher than threshold, images is classified as background
     '''
     is_bkgnd = False
     hist = calcHist(images=[cvtColor(image, COLOR_RGB2GRAY)],
                     channels=[0], mask=None, histSize=[256], ranges=[0, 256])
-    if np.sum(hist[rng[0]:rng[1]])/np.sum(hist) > 0.9:
+    mode = np.argmax(hist)
+    if np.sum(hist[mode-10:mode+10])/np.sum(hist) > threshold:
+        is_bkgnd = True
+    
+    abs_lap = np.absolute(Laplacian(cvtColor(image, COLOR_RGB2GRAY), CV_64F))
+    if abs_lap.max() < 40:
         is_bkgnd = True
     return hist, is_bkgnd
 
@@ -170,7 +174,7 @@ def rectangle_split_ndpi_ndpa(ndp_image, image_annotation_list, split_height,
             # _, is_bkgnd = tile_is_background_1(reg_ndpi, rng=(220, 240),
             #                                    threshold=0.9)
 
-            _, is_bkgnd = tile_is_background_2(reg_ndpi, threshold=5)
+            _, is_bkgnd = tile_is_background_1(reg_ndpi, threshold=0.85)
 
             if is_bkgnd:
                 if bkgnd_tiles_counter < n_bkgnd_tiles:
@@ -180,7 +184,8 @@ def rectangle_split_ndpi_ndpa(ndp_image, image_annotation_list, split_height,
                 else:
                     continue
             else:
-                if np.sum(reg_ndpa) == height * width:
+                # if np.sum(reg_ndpa) == height * width:
+                if np.sum(reg_ndpa) > 0:
                     labels[split_filename] = 1
                     tile_class = "1"
                 else:
@@ -205,14 +210,14 @@ def main():
     train_dir = "data/train"
     os.chdir(train_dir)
     print(os.getcwd())
+    
     build_dirs(train_dir)
-
     file_list, _, _ = list_files_from_dir(extension=".ndpi")
     
     for f in file_list:
         print(f)
     
-    width, height = 64, 64
+    width, height = 128, 128
     
     print("Tile size: {}x{}".format(height, width))
 
@@ -223,11 +228,11 @@ def main():
                                   image_annotation_list=image_annotation_list,
                                   split_height=height,
                                   split_width=width,
-                                  tohsv=True,
+                                  tohsv=False,
                                   path_ndpi="split/X",
                                   path_ndpa="split/mask")
 
-    data_augmentation()
+    # data_augmentation()
 
 
 if __name__ == "__main__":

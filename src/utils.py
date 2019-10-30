@@ -37,10 +37,10 @@ def list_files_from_dir(directory="", extension=".ndpi"):
     It also returns the path relative to the inputed directory
     '''
     # TODO> resolver el bug... cuando corro preprocess o split la variable glb
-    #       tiene que tener "**/*" pero para q funcione con train.py tiene
+    #       tiene que tener "**/*" pero para q funcione con train.py y test.py tiene
     #       tiene que tener "/**/*"
 
-    glb = glob.glob(directory + "**/*" + extension, recursive=True)
+    glb = glob.glob(directory + "/**/*" + extension, recursive=True)
 
     file_list = [os.path.basename(f) for f in glb]
     dir_list = [os.path.dirname(f).replace(directory + "\\", "") for f in glb]

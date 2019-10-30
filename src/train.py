@@ -3,15 +3,17 @@ import os
 from utils import list_files_from_dir, normalize_image, \
     train_validation_test_partition
 from metrics import *
+from preprocess import data_augmentation
 from cv2 import imread, IMREAD_GRAYSCALE
 import numpy as np
 from matplotlib import pyplot as plt
+
 import tensorflow as tf
+import tensorflow.keras.backend as K
 # from tensorflow.keras import metrics
 from math import floor
 from sklearn.utils import shuffle
 import time
-
 
 # TODO> rename to "preprocess.py", y crear un nuevo archivo
 #       "train.py" que sea el que ejecuta el entrenamiento.
@@ -199,37 +201,134 @@ class CustomSaver(tf.keras.callbacks.Callback):
         self.tile_side = tile_side
         super().__init__()
     def on_epoch_end(self, epoch, logs={}):
-        if epoch % 10 == 0:
-            self.model.save(self.model_name.format(epoch, self.tile_side))
+        if (epoch + 1) % 1 == 0:
+            self.model.save(self.model_name.format(epoch + 1, self.tile_side))
+            print("class weights saved!")
 
+
+
+def apply_distortion(img, distortion='gauss'):
+    'Rotate 90° clockwise'
+    if distortion == '90r':
+#         return cv2.flip(cv2.transpose(img), 1)
+        return tf.image.rot90(img)
+
+    if distortion == 'color':
+        img[:,:,3] = img[:,:,3] + 14/255
+        return img
+    
+    if distortion == 'gauss':
+        gauss = tf.random.normal(tf.shape(img), 0., .5, )
+        return img + gauss
+    
+    
+def custom_loss(i_dist_output_layer, alpha=1.):
+    
+    def loss(y_true, y_pred):
+        # l_0 = tf.keras.losses.binary_crossentropy(y_true, i_dist_output_layer)
+        l_0 = tf.keras.losses.binary_crossentropy(y_true, y_pred)
+
+
+        l_stability = tf.math.abs((tf.keras.losses.kullback_leibler_divergence(y_pred, i_dist_output_layer) + 
+                                  tf.keras.losses.kullback_leibler_divergence(i_dist_output_layer, y_pred)) / 2)
+
+        l_stability_print = tf.print('\nl_stability shape is: ', tf.shape(l_stability), '\nl_stability is: ', l_stability, 
+                                     '\nl_0 shape is: ', tf.shape(l_0), '\nl_0: ', l_0, 
+                                     '\ndist_output shape is: ', tf.shape(i_dist_output_layer), '\ndist_output is: ', i_dist_output_layer,
+                                     '\ny_pred shape is: ', tf.shape(y_pred), '\ny_pred is: ', y_pred,
+                                     '\ny_true shape is: ', tf.shape(y_true), '\ny_true is: ', y_true, )
+        
+        with tf.control_dependencies([l_stability_print]):
+            return tf.identity(l_stability + l_0)
+
+        # return l_0
+        # return l_0 + l_stability * alpha
+        
+    return loss
 
 def basic_dl_model(tile_side, saver, training_generator, validation_generator=None,
                    class_weight={0: 1., 1: 1.}, epochs=5):
 
-    model = tf.keras.models.Sequential([
-        tf.keras.layers.Conv2D(filters=128, kernel_size=(3, 3),
-                               input_shape=(tile_side, tile_side, 3),
-                               data_format="channels_last", activation='relu'),
-        tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
-        tf.keras.layers.Conv2D(filters=256, kernel_size=(3, 3),
-                               data_format="channels_last", activation='relu'),
-        tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
-        tf.keras.layers.Conv2D(filters=128, kernel_size=(3, 3),
-                               data_format="channels_last", activation='relu'),
-        tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(128, activation='relu'),
-        tf.keras.layers.Dense(64, activation='relu'),
-        tf.keras.layers.Dense(1, activation='sigmoid'),
-    ])
+    # https://www.kdnuggets.com/2019/04/advanced-keras-constructing-complex-custom-losses-metrics.html
 
 
+    '''modelo 1'''
+    # model = tf.keras.models.Sequential([
+    #     tf.keras.layers.Conv2D(filters=128, kernel_size=(3, 3),
+    #                            input_shape=(tile_side, tile_side, 3),
+    #                            data_format="channels_last", activation='relu'),
+    #     tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
+    #     tf.keras.layers.Conv2D(filters=256, kernel_size=(3, 3),
+    #                            data_format="channels_last", activation='relu'),
+    #     tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
+    #     tf.keras.layers.Conv2D(filters=128, kernel_size=(3, 3),
+    #                            data_format="channels_last", activation='relu'),
+    #     tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
+    #     tf.keras.layers.Flatten(),
+    #     tf.keras.layers.Dense(128, activation='relu'),
+    #     tf.keras.layers.Dense(64, activation='relu'),
+    #     tf.keras.layers.Dense(1, activation='sigmoid'),
+    # ])
+
+    '''modelo 2'''
+
+    # conv_base = tf.keras.applications.InceptionV3(weights='imagenet', include_top=False, input_shape=(tile_side,tile_side,3))
+    # model = tf.keras.models.Sequential()
+    # model.add(conv_base)
+    # model.add(tf.keras.layers.Flatten())
+    # model.add(tf.keras.layers.Dense(128, activation='relu'))
+    # model.add(tf.keras.layers.Dense(64, activation='relu'))
+    # model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
+    # conv_base.trainable=False
+
+    '''modelo 3'''
+    # i = tf.keras.layers.Input(shape=(tile_side, tile_side, 3))
+    # i_dist = tf.keras.layers.Lambda(apply_distortion)(i)
+
+    # base_model = tf.keras.applications.InceptionV3(weights='imagenet', 
+    #                                             include_top=False, 
+    #                                             input_shape=(tile_side,tile_side,3))
+    # dense1 = tf.keras.layers.Dense(128, activation='relu')
+
+    # x_i = base_model(i)
+    # x_i = dense1(x_i)
+    # pred_i = tf.keras.layers.Dense(1, activation='sigmoid')(x_i)
+
+    # x_i_dist = base_model(i_dist)
+    # x_i_dist = dense1(x_i_dist)
+    # pred_i_dist = tf.keras.layers.Dense(1, activation='sigmoid')(x_i_dist)
+
+    # model = tf.keras.models.Model(inputs=i, outputs=pred_i)
 
 
-    model.compile(optimizer='adam', loss='binary_crossentropy',
-                  metrics=['acc', precision_m,
-                           recall_m, f1_m])
+    '''modelo 4'''
+    i = tf.keras.layers.Input(shape=(tile_side, tile_side, 3))
+    i_dist = tf.keras.layers.Lambda(apply_distortion)(i)
 
+    inception = tf.keras.applications.InceptionV3(weights='imagenet', 
+                                                include_top=False, 
+                                                input_shape=(tile_side,tile_side,3))
+    base_model = tf.keras.models.Sequential()
+    base_model.add(inception)
+    base_model.add(tf.keras.layers.Flatten())
+    base_model.add(tf.keras.layers.Dense(128, activation='relu'))
+    base_model.add(tf.keras.layers.Dense(64, activation='relu'))
+    base_model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
+
+    x_i = base_model(i)
+    x_i_dist = base_model(i_dist)
+
+    model = tf.keras.models.Model(inputs=i, outputs=x_i)
+
+
+    '''compile/fit'''
+    model.compile(optimizer='adam', 
+                  loss=custom_loss(x_i_dist),
+                #   loss='binary_crossentropy',
+                  metrics=['acc', precision_m, recall_m, f1_m])
+
+    tensorboard = tf.keras.callbacks.TensorBoard(log_dir='log/{}'.format(time.time()))
+    
     model.fit_generator(generator=training_generator,
                         validation_data=validation_generator,
                         callbacks=[saver],
@@ -251,7 +350,9 @@ def main():
     '''
     
     model_name = "models/" + time.strftime("%Y%m%d") + \
-                 "_basic_dl_model_{}_epochs_9pics_absnorm_x20_{}px.h5"
+                     "_InceptionV3_Prueba_Loss_Function_model_{}_epochs_15pics_absnorm_x20_{}px_full-train.h5"
+                    #  "_InceptionV3_newPreprocesing_model_{}_epochs_15pics_absnorm_x20_{}px_full-train.h5"
+
     
     file_list, dir_list, counts = list_files_from_dir(directory="data/train/split/X",
                                               extension=".tif")
@@ -265,23 +366,22 @@ def main():
     
     ild = {file_list[i]: dir_list[i] for i in range(len(dir_list))}
 
-    tile_side = 64
+    tile_side = 128
     saver = CustomSaver(model_name=model_name, tile_side=tile_side)
     training_generator = ImageGenerator2(list_IDs=train_list,
                                          image_label_directory=ild,
                                          tile_side=tile_side,
-                                         batch_size=128)
+                                         batch_size=64)
     validation_generator = ImageGenerator2(list_IDs=val_list,
                                            image_label_directory=ild,
                                            tile_side=tile_side,
-                                           batch_size=128)
+                                           batch_size=64)
     
-    class_weight = {0: (counts["-1"]+counts["0"])/counts["1"], 1: 1.}
-    
+    class_weight = {0: 1., 1: (counts["-1"]+counts["0"])/counts["1"]}    
 
 
     
-    epochs = [60]
+    epochs = [1]
     for e in epochs:
         model = basic_dl_model(tile_side,
                                saver=saver,
@@ -291,6 +391,9 @@ def main():
                                epochs=e)
 
         model.save(model_name.format(e, tile_side))
+    
+    K.clear_session()
+
 
 if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.realpath(__file__)))

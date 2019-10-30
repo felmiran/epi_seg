@@ -19,7 +19,7 @@ def evaluate_model(model, ndpi_list):
 
 # Load model
 print(os.getcwd())
-model_filename = "20191014-1225_basic_dl_model_40_epochs_9pics_absnorm_x20_64px.h5"
+model_filename = "20191018_InceptionV3_newPreprocesing_model_39_epochs_15pics_absnorm_x20_128px_full-train.h5"
 # model = tf.keras.models.load_model("src/models/" + model_filename)
 model = tf.keras.models.load_model("src/models/" + model_filename, 
                                    custom_objects={'precision_m': precision_m,
@@ -37,7 +37,7 @@ model = tf.keras.models.load_model("src/models/" + model_filename,
 #                                        size=(ndp_image.width_lvl_0,
 #                                              ndp_image.height_lvl_0)))
 # val_X = cv2.cvtColor(val_X[:, :, :3], cv2.COLOR_RGB2BGR)
-tile_size = 64
+tile_size = 128
 resolution = "x20"
 
 image_dir = "src/data/test/grandes_RGB/{}".format(resolution)
@@ -58,19 +58,10 @@ for image_filename in file_list:
 
     val_X = convert_image_to_stack_of_tiles(val_X, tile_size, tile_size)
 
-
-    # val_X = np.load("src/data/test/val_X.npy")
-
-    # n_ver = floor(17152/128)
-    # n_hor = floor(14336/128)
-
     results = model.predict_classes(val_X)
     results = results.reshape(n_ver, n_hor)
-    
-    # plt.imshow(results, aspect='auto')
-    # plt.show()
 
-    save_np_as_image(results*255, image_dir + "/" + image_filename + "_40_epochs_9pics_{}_{}px.png".format(resolution, tile_size))
+    save_np_as_image(results*255, image_dir + "/" + image_filename + "_InceptionV3_new_preprocessing_40_epochs_15pics_{}_{}px.png".format(resolution, tile_size))
 
 
 
