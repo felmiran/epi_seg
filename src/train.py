@@ -202,20 +202,23 @@ class CustomSaver(tf.keras.callbacks.Callback):
         super().__init__()
     def on_epoch_end(self, epoch, logs={}):
         if (epoch + 1) % 1 == 0:
-            self.model.save(self.model_name.format(epoch + 1, self.tile_side))
+            self.model.save(self.model_name.format(self.tile_side, epoch+1))
             print("class weights saved!")
 
 
 
-def apply_distortion(img, distortion='gauss'):
+def apply_distortion(img, tile_side=128, distortion='gauss'):
     'Rotate 90° clockwise'
     if distortion == '90r':
-#         return cv2.flip(cv2.transpose(img), 1)
-        return tf.image.rot90(img)
+        return tf.image.rot90(img, k=3)
 
     if distortion == 'color':
-        img[:,:,3] = img[:,:,3] + 14/255
-        return img
+
+        color_dist = np.zeros((tile_side, tile_side, 3))
+        color_dist[:,:,1] = 13./255 # con esto vamos a aumentar en 13/255 el canal 1, que corresponde a G (independiente de si es RGB o BGR)
+        color_dist_tensor = tf.convert_to_tensor(color_dist, dtype=np.float32)
+
+        return img + color_dist_tensor
     
     if distortion == 'gauss':
         gauss = tf.random.normal(tf.shape(img), 0., .5, )
@@ -225,28 +228,29 @@ def apply_distortion(img, distortion='gauss'):
 def custom_loss(i_dist_output_layer, alpha=1.):
     
     def loss(y_true, y_pred):
-        # l_0 = tf.keras.losses.binary_crossentropy(y_true, i_dist_output_layer)
         l_0 = tf.keras.losses.binary_crossentropy(y_true, y_pred)
 
+        # NOTE: keras KL divergence only uses column that was provided (y), so we have to add probabilities of other alternative (1-y)
+        # This is because of how kL divergence is calculated
+        l_stability_col_1 = tf.keras.losses.kullback_leibler_divergence(y_pred, i_dist_output_layer)
+        l_stability_col_2 = tf.keras.losses.kullback_leibler_divergence(1-y_pred, 1-i_dist_output_layer) 
+        l_stability = l_stability_col_1 + l_stability_col_2
 
-        l_stability = tf.math.abs((tf.keras.losses.kullback_leibler_divergence(y_pred, i_dist_output_layer) + 
-                                  tf.keras.losses.kullback_leibler_divergence(i_dist_output_layer, y_pred)) / 2)
-
-        l_stability_print = tf.print('\nl_stability shape is: ', tf.shape(l_stability), '\nl_stability is: ', l_stability, 
-                                     '\nl_0 shape is: ', tf.shape(l_0), '\nl_0: ', l_0, 
-                                     '\ndist_output shape is: ', tf.shape(i_dist_output_layer), '\ndist_output is: ', i_dist_output_layer,
-                                     '\ny_pred shape is: ', tf.shape(y_pred), '\ny_pred is: ', y_pred,
-                                     '\ny_true shape is: ', tf.shape(y_true), '\ny_true is: ', y_true, )
+        # l_stability_print = tf.print('\nl_stability shape is: ', tf.shape(l_stability), '\nl_stability is: ', l_stability, 
+        #                              '\nl_0 shape is: ', tf.shape(l_0), '\nl_0: ', l_0, 
+        #                              '\ndist_output shape is: ', tf.shape(i_dist_output_layer), '\ndist_output is: ', i_dist_output_layer,
+        #                              '\ny_pred shape is: ', tf.shape(y_pred), '\ny_pred is: ', y_pred,
+        #                              '\ny_true shape is: ', tf.shape(y_true), '\ny_true is: ', y_true)
         
-        with tf.control_dependencies([l_stability_print]):
-            return tf.identity(l_stability + l_0)
+        # with tf.control_dependencies([l_stability_print]):
+        #     return tf.identity(l_stability)
 
-        # return l_0
-        # return l_0 + l_stability * alpha
+        return l_0 + l_stability * alpha
         
+
     return loss
 
-def basic_dl_model(tile_side, saver, training_generator, validation_generator=None,
+def basic_dl_model(tile_side, saver, model_name, training_generator, validation_generator=None,
                    class_weight={0: 1., 1: 1.}, epochs=5):
 
     # https://www.kdnuggets.com/2019/04/advanced-keras-constructing-complex-custom-losses-metrics.html
@@ -271,7 +275,6 @@ def basic_dl_model(tile_side, saver, training_generator, validation_generator=No
     # ])
 
     '''modelo 2'''
-
     # conv_base = tf.keras.applications.InceptionV3(weights='imagenet', include_top=False, input_shape=(tile_side,tile_side,3))
     # model = tf.keras.models.Sequential()
     # model.add(conv_base)
@@ -281,27 +284,8 @@ def basic_dl_model(tile_side, saver, training_generator, validation_generator=No
     # model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
     # conv_base.trainable=False
 
+
     '''modelo 3'''
-    # i = tf.keras.layers.Input(shape=(tile_side, tile_side, 3))
-    # i_dist = tf.keras.layers.Lambda(apply_distortion)(i)
-
-    # base_model = tf.keras.applications.InceptionV3(weights='imagenet', 
-    #                                             include_top=False, 
-    #                                             input_shape=(tile_side,tile_side,3))
-    # dense1 = tf.keras.layers.Dense(128, activation='relu')
-
-    # x_i = base_model(i)
-    # x_i = dense1(x_i)
-    # pred_i = tf.keras.layers.Dense(1, activation='sigmoid')(x_i)
-
-    # x_i_dist = base_model(i_dist)
-    # x_i_dist = dense1(x_i_dist)
-    # pred_i_dist = tf.keras.layers.Dense(1, activation='sigmoid')(x_i_dist)
-
-    # model = tf.keras.models.Model(inputs=i, outputs=pred_i)
-
-
-    '''modelo 4'''
     i = tf.keras.layers.Input(shape=(tile_side, tile_side, 3))
     i_dist = tf.keras.layers.Lambda(apply_distortion)(i)
 
@@ -327,11 +311,11 @@ def basic_dl_model(tile_side, saver, training_generator, validation_generator=No
                 #   loss='binary_crossentropy',
                   metrics=['acc', precision_m, recall_m, f1_m])
 
-    tensorboard = tf.keras.callbacks.TensorBoard(log_dir='log/{}'.format(time.time()))
+    tensorboard = tf.keras.callbacks.TensorBoard(log_dir='log/{}'.format(model_name.format(tile_side, "all")))
     
     model.fit_generator(generator=training_generator,
                         validation_data=validation_generator,
-                        callbacks=[saver],
+                        callbacks=[saver, tensorboard],
                         epochs=epochs,
                         use_multiprocessing=True,
                         workers=8,
@@ -350,7 +334,7 @@ def main():
     '''
     
     model_name = "models/" + time.strftime("%Y%m%d") + \
-                     "_InceptionV3_Prueba_Loss_Function_model_{}_epochs_15pics_absnorm_x20_{}px_full-train.h5"
+                     "_InceptionV3_Prueba_Loss_Function_model_15pics_absnorm_x20_{}px_epoch_{}.h5"
                     #  "_InceptionV3_newPreprocesing_model_{}_epochs_15pics_absnorm_x20_{}px_full-train.h5"
 
     
@@ -385,12 +369,13 @@ def main():
     for e in epochs:
         model = basic_dl_model(tile_side,
                                saver=saver,
+                               model_name=model_name,
                                training_generator=training_generator,
                                validation_generator=validation_generator,
                                class_weight=class_weight,
                                epochs=e)
 
-        model.save(model_name.format(e, tile_side))
+        model.save(model_name.format(tile_side, e))
     
     K.clear_session()
 
