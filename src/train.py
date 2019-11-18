@@ -10,10 +10,10 @@ from matplotlib import pyplot as plt
 
 import tensorflow as tf
 import tensorflow.keras.backend as K
-# from tensorflow.keras import metrics
 from math import floor
 from sklearn.utils import shuffle
 import time
+
 
 # TODO> rename to "preprocess.py", y crear un nuevo archivo
 #       "train.py" que sea el que ejecuta el entrenamiento.
@@ -256,7 +256,7 @@ def basic_dl_model(tile_side, saver, model_name, training_generator, validation_
     # https://www.kdnuggets.com/2019/04/advanced-keras-constructing-complex-custom-losses-metrics.html
 
 
-    '''modelo 1'''
+    '''modelo 1: modelo mas simple, solo un par de capas convolucionales'''
     # model = tf.keras.models.Sequential([
     #     tf.keras.layers.Conv2D(filters=128, kernel_size=(3, 3),
     #                            input_shape=(tile_side, tile_side, 3),
@@ -274,41 +274,44 @@ def basic_dl_model(tile_side, saver, model_name, training_generator, validation_
     #     tf.keras.layers.Dense(1, activation='sigmoid'),
     # ])
 
-    '''modelo 2'''
-    # conv_base = tf.keras.applications.InceptionV3(weights='imagenet', include_top=False, input_shape=(tile_side,tile_side,3))
-    # model = tf.keras.models.Sequential()
-    # model.add(conv_base)
-    # model.add(tf.keras.layers.Flatten())
-    # model.add(tf.keras.layers.Dense(128, activation='relu'))
-    # model.add(tf.keras.layers.Dense(64, activation='relu'))
-    # model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
-    # conv_base.trainable=False
+    '''modelo 2: solo el modelo base mas un par de capas fully connected'''
+    conv_base = tf.keras.applications.InceptionV3(weights='imagenet', include_top=False, input_shape=(tile_side,tile_side,3))
+    # conv_base = tf.keras.applications.InceptionResNetV2(weights='imagenet', include_top=False, input_shape=(tile_side,tile_side,3))
+    model = tf.keras.models.Sequential()
+    model.add(conv_base)
+    model.add(tf.keras.layers.Flatten())
+    model.add(tf.keras.layers.Dense(128, activation='relu'))
+    model.add(tf.keras.layers.Dense(64, activation='relu'))
+    model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
+    conv_base.trainable=True
 
 
-    '''modelo 3'''
-    i = tf.keras.layers.Input(shape=(tile_side, tile_side, 3))
-    i_dist = tf.keras.layers.Lambda(apply_distortion)(i)
+    '''modelo 3: incluye custom loss para aplicar stability training'''
+    # i = tf.keras.layers.Input(shape=(tile_side, tile_side, 3))
+    # i_dist = tf.keras.layers.Lambda(apply_distortion)(i)
 
-    inception = tf.keras.applications.InceptionV3(weights='imagenet', 
-                                                include_top=False, 
-                                                input_shape=(tile_side,tile_side,3))
-    base_model = tf.keras.models.Sequential()
-    base_model.add(inception)
-    base_model.add(tf.keras.layers.Flatten())
-    base_model.add(tf.keras.layers.Dense(128, activation='relu'))
-    base_model.add(tf.keras.layers.Dense(64, activation='relu'))
-    base_model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
+    # inception = tf.keras.applications.InceptionV3(weights='imagenet', 
+    #                                             include_top=False, 
+    #                                             input_shape=(tile_side,tile_side,3))
 
-    x_i = base_model(i)
-    x_i_dist = base_model(i_dist)
 
-    model = tf.keras.models.Model(inputs=i, outputs=x_i)
+    # base_model = tf.keras.models.Sequential()
+    # base_model.add(inception)
+    # base_model.add(tf.keras.layers.Flatten())
+    # base_model.add(tf.keras.layers.Dense(128, activation='relu'))
+    # base_model.add(tf.keras.layers.Dense(64, activation='relu'))
+    # base_model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
+
+    # x_i = base_model(i)
+    # x_i_dist = base_model(i_dist)
+
+    # model = tf.keras.models.Model(inputs=i, outputs=x_i)
 
 
     '''compile/fit'''
     model.compile(optimizer='adam', 
-                  loss=custom_loss(x_i_dist),
-                #   loss='binary_crossentropy',
+                #   loss=custom_loss(x_i_dist),
+                  loss='binary_crossentropy',
                   metrics=['acc', precision_m, recall_m, f1_m])
 
     tensorboard = tf.keras.callbacks.TensorBoard(log_dir='log/{}'.format(model_name.format(tile_side, "all")))
@@ -329,12 +332,12 @@ def InceptionModel(tile_side, training_generator):
 
 def main():
     '''
-    converts image to stack and runs training of DL model by use of custom
-    Generator from Keras
+    trains a model from a set of tiles previously preprocessed and separated into
+    folders according to the label
     '''
     
     model_name = "models/" + time.strftime("%Y%m%d") + \
-                     "_InceptionV3_Prueba_Loss_Function_model_15pics_absnorm_x20_{}px_epoch_{}.h5"
+                     "_InceptionV3_Prueba_Loss_Function_model_Box1-4_x20_{}px_epoch_{}.h5"
                     #  "_InceptionV3_newPreprocesing_model_{}_epochs_15pics_absnorm_x20_{}px_full-train.h5"
 
     
@@ -365,7 +368,7 @@ def main():
 
 
     
-    epochs = [1]
+    epochs = [40]
     for e in epochs:
         model = basic_dl_model(tile_side,
                                saver=saver,

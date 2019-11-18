@@ -40,7 +40,7 @@ def list_files_from_dir(directory="", extension=".ndpi"):
     #       tiene que tener "**/*" pero para q funcione con train.py y test.py tiene
     #       tiene que tener "/**/*"
 
-    glb = glob.glob(directory + "/**/*" + extension, recursive=True)
+    glb = glob.glob(directory + "**/*" + extension, recursive=True)
 
     file_list = [os.path.basename(f) for f in glb]
     dir_list = [os.path.dirname(f).replace(directory + "\\", "") for f in glb]

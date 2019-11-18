@@ -166,8 +166,12 @@ def rectangle_split_ndpi_ndpa(ndp_image, image_annotation_list, split_height,
                                                               h * height),
                                       square_height=height, square_width=width)
 
-            dimensions = "_({},{})_{}x{}".format(w * width, h * height, width,
-                                                 height)
+            # dimensions = "_({},{})_{}x{}".format(w * width, h * height, width,
+            #                                      height)
+            
+            dimensions = "_(h{}-{},w{}-{})_{}x{}".format(
+                h, n_ver, w, n_hor, height, width)
+            
             split_filename = filename.replace(".ndpi", "")
             split_filename = split_filename + dimensions + ".tif"
 
@@ -207,15 +211,18 @@ def main():
     for now, this function grabs a ndpi image, splits the image and the mask
     and saves the splits in the split directory.
     '''
-    train_dir = "data/train"
-    os.chdir(train_dir)
+    
+    # NOTE: Pasar de "data/test" a "data/train" para hacer el training set
+    preprocess_dir = "data/test"
+
+    os.chdir(preprocess_dir)
     print(os.getcwd())
     
     build_dirs(train_dir)
     file_list, _, _ = list_files_from_dir(extension=".ndpi")
     
-    for f in file_list:
-        print(f)
+    for i, f in enumerate(file_list):
+        print("{}. ".format(i) + f)
     
     width, height = 128, 128
     

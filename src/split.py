@@ -10,57 +10,6 @@ import json
 from tqdm import tqdm
 
 
-def data_augmentation(directory="../split/X/1", flip_imgs=True):
-    '''
-    generates extra images for eah image in directory: 3 addicional
-    images corresponding to 90, 180, 270 rotations.
-    if flip=True the flipped version of the 4 images (original + 3)
-    will be created as well.
-    '''
-    labels = {}
-
-    print("Data augmentation commencing for images labelled 'epithelium'.")
-    print("flip_imgs={}".format(flip_imgs))
-
-    file_list, _, _ = list_files_from_dir(directory=directory, extension=".tif")
-    for img_name in tqdm(file_list):
-
-        img = imread(directory + "/" + img_name)
-
-        img_90, labels["90_" + img_name] = flip(transpose(img), 1), 1
-        save_np_as_image(cvtColor(img_90, COLOR_BGR2RGB),
-                         directory + "/90_" + img_name)
-
-        img_180, labels["180_" + img_name] = flip(img, -1), 1
-        save_np_as_image(cvtColor(img_180, COLOR_BGR2RGB),
-                         directory + "/180_" + img_name)
-
-        img_270, labels["270_" + img_name] = flip(transpose(img), 0), 1
-        save_np_as_image(cvtColor(img_270, COLOR_BGR2RGB),
-                         directory + "/270_" + img_name)
-
-        if flip_imgs:
-            img_f, labels["f_" + img_name] = flip(img, 1), 1
-            save_np_as_image(cvtColor(img_f, COLOR_BGR2RGB),
-                             directory + "/f_" + img_name)
-
-            img_90f, labels["90f_" + img_name] = flip(img_90, 1), 1
-            save_np_as_image(cvtColor(img_90f, COLOR_BGR2RGB),
-                             directory + "/90f_" + img_name)
-
-            img_180f, labels["180f_" + img_name] = flip(img_180, 1), 1
-            save_np_as_image(cvtColor(img_180f, COLOR_BGR2RGB),
-                             directory + "/180f_" + img_name)
-
-            img_270f, labels["270f_" + img_name] = flip(img_270, 1), 1
-            save_np_as_image(cvtColor(img_270f, COLOR_BGR2RGB),
-                             directory + "/270f_" + img_name)
-
-    json.dump(labels, open("../split/X/augmentations.txt", "w"))
-
-    pass
-
-
 def clean_split_files(directory="../split", lista=""):
     '''
     deletes files where mask has no pixel in annotated region
@@ -214,8 +163,8 @@ def main(clean=False):
     os.chdir("data/test")
 
     file_list, _, _ = list_files_from_dir(extension=".ndpi")
-    for f in file_list:
-        print(f)
+    for i, f in enumerate(file_list):
+        print("{}. ".format(i) + f)
         
     print(file_list)
 

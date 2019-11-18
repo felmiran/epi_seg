@@ -8,6 +8,7 @@
 *.h5
 *.txt
 *.png
+*.csv
 
 __pycache__/
 .vscode/
