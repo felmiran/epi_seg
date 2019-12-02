@@ -275,8 +275,10 @@ def basic_dl_model(tile_side, saver, model_name, training_generator, validation_
     # ])
 
     '''modelo 2: solo el modelo base mas un par de capas fully connected'''
+    # conv_base = tf.keras.applications.Xception(weights='imagenet', include_top=False, input_shape=(tile_side,tile_side,3))
     conv_base = tf.keras.applications.InceptionV3(weights='imagenet', include_top=False, input_shape=(tile_side,tile_side,3))
     # conv_base = tf.keras.applications.InceptionResNetV2(weights='imagenet', include_top=False, input_shape=(tile_side,tile_side,3))
+
     model = tf.keras.models.Sequential()
     model.add(conv_base)
     model.add(tf.keras.layers.Flatten())
@@ -312,8 +314,9 @@ def basic_dl_model(tile_side, saver, model_name, training_generator, validation_
     model.compile(optimizer='adam', 
                 #   loss=custom_loss(x_i_dist),
                   loss='binary_crossentropy',
-                  metrics=['acc', precision_m, recall_m, f1_m])
+                  metrics=['acc', precision_m, recall_m, f1_m, auc_m])
 
+    # $ tensorboard --logdir=./
     tensorboard = tf.keras.callbacks.TensorBoard(log_dir='log/{}'.format(model_name.format(tile_side, "all")))
     
     model.fit_generator(generator=training_generator,
@@ -337,7 +340,7 @@ def main():
     '''
     
     model_name = "models/" + time.strftime("%Y%m%d") + \
-                     "_InceptionV3_Prueba_Loss_Function_model_Box1-4_x20_{}px_epoch_{}.h5"
+                     "_InceptionV3_15pics_x20_AUCMetric_{}px_epoch_{}.h5"
                     #  "_InceptionV3_newPreprocesing_model_{}_epochs_15pics_absnorm_x20_{}px_full-train.h5"
 
     

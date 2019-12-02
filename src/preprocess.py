@@ -175,10 +175,9 @@ def rectangle_split_ndpi_ndpa(ndp_image, image_annotation_list, split_height,
             split_filename = filename.replace(".ndpi", "")
             split_filename = split_filename + dimensions + ".tif"
 
-            # _, is_bkgnd = tile_is_background_1(reg_ndpi, rng=(220, 240),
-            #                                    threshold=0.9)
+            _, is_bkgnd = tile_is_background_2(reg_ndpi)
 
-            _, is_bkgnd = tile_is_background_1(reg_ndpi, threshold=0.85)
+            # _, is_bkgnd = tile_is_background_1(reg_ndpi, threshold=0.85)
 
             if is_bkgnd:
                 if bkgnd_tiles_counter < n_bkgnd_tiles:
@@ -213,12 +212,11 @@ def main():
     '''
     
     # NOTE: Pasar de "data/test" a "data/train" para hacer el training set
-    preprocess_dir = "data/test"
-
+    preprocess_dir = "data/train"
     os.chdir(preprocess_dir)
     print(os.getcwd())
-    
-    build_dirs(train_dir)
+    build_dirs(preprocess_dir)
+
     file_list, _, _ = list_files_from_dir(extension=".ndpi")
     
     for i, f in enumerate(file_list):
@@ -237,9 +235,10 @@ def main():
                                   split_width=width,
                                   tohsv=False,
                                   path_ndpi="split/X",
-                                  path_ndpa="split/mask")
+                                  path_ndpa="split/mask",
+                                  n_bkgnd_tiles=200000)
 
-    # data_augmentation()
+    data_augmentation()
 
 
 if __name__ == "__main__":
