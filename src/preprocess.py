@@ -1,7 +1,7 @@
 import os
 from classes import NDPImage, ImageAnnotationList
 from utils import save_np_as_image, extract_region, build_dirs, \
-    list_files_from_dir, to_hsv, normalize_image, call_ndpi_ndpa
+    list_files_from_dir, normalize_image, call_ndpi_ndpa
 from cv2 import cvtColor, COLOR_RGB2HSV, COLOR_RGB2GRAY, COLOR_BGR2RGB, \
     NORM_MINMAX, imread, calcHist, transpose, flip, Laplacian, CV_64F
 from math import ceil, floor
@@ -175,9 +175,13 @@ def rectangle_split_ndpi_ndpa(ndp_image, image_annotation_list, split_height,
             split_filename = filename.replace(".ndpi", "")
             split_filename = split_filename + dimensions + ".tif"
 
-            _, is_bkgnd = tile_is_background_2(reg_ndpi)
 
-            # _, is_bkgnd = tile_is_background_1(reg_ndpi, threshold=0.85)
+
+            ######## stdDev
+            # _, is_bkgnd = tile_is_background_2(reg_ndpi)
+
+            ######## modeRange
+            _, is_bkgnd = tile_is_background_1(reg_ndpi, threshold=0.85)
 
             if is_bkgnd:
                 if bkgnd_tiles_counter < n_bkgnd_tiles:
@@ -187,16 +191,13 @@ def rectangle_split_ndpi_ndpa(ndp_image, image_annotation_list, split_height,
                 else:
                     continue
             else:
-                # if np.sum(reg_ndpa) == height * width:
-                if np.sum(reg_ndpa) > 0:
+                if np.sum(reg_ndpa) == height * width:
+                # if np.sum(reg_ndpa) > 0:
                     labels[split_filename] = 1
                     tile_class = "1"
                 else:
                     labels[split_filename] = 0
                     tile_class = "0"
-
-            if tohsv:
-                reg_ndpi = to_hsv(reg_ndpi)
 
             save_np_as_image(reg_ndpi, path_ndpi + "/" + tile_class +
                              "/" + split_filename)
@@ -236,7 +237,7 @@ def main():
                                   tohsv=False,
                                   path_ndpi="split/X",
                                   path_ndpa="split/mask",
-                                  n_bkgnd_tiles=200000)
+                                  n_bkgnd_tiles=5000)
 
     data_augmentation()
 

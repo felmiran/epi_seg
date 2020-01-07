@@ -1,7 +1,7 @@
 from skimage import util
 import os
 from utils import list_files_from_dir, normalize_image, \
-    train_validation_test_partition, to_hsv
+    train_validation_test_partition
 from metrics import *
 from preprocess import data_augmentation
 from cv2 import imread, IMREAD_GRAYSCALE
@@ -143,14 +143,13 @@ class ImageGenerator1(tf.keras.utils.Sequence):
 
 class ImageGenerator2(tf.keras.utils.Sequence):
     def __init__(self, list_IDs, image_label_directory, source_directory, tile_side=128,
-                 batch_size=100, shuffle=True, hsv=False):
+                 batch_size=100, shuffle=True):
         self.source_directory = source_directory
         self.list_IDs = list_IDs
         self.image_label_directory = image_label_directory
         self.tile_side = tile_side
         self.batch_size = batch_size
         self.shuffle = shuffle
-        self.hsv = hsv
         np.random.seed(24)
         self.on_epoch_end()
 
@@ -184,14 +183,13 @@ class ImageGenerator2(tf.keras.utils.Sequence):
            on a list with one element
         '''
 
-        X = np.empty((self.batch_size, self.tile_side, self.tile_side, 3), dtype='float32')
+        X = np.empty((self.batch_size, self.tile_side, self.tile_side, 3))
         y = np.empty((self.batch_size), dtype=int)
 
         for i, fname in enumerate(list_IDs_temp):
-            X[i] = imread(self.source_directory + "/" + self.image_label_directory[fname] + "/" + fname)
-            if self.hsv==True:
-                X[i] = to_hsv(X[i])
-            X[i] = normalize_image(image=X[i], hsv=self.hsv)
+            X[i] = normalize_image(imread(self.source_directory + "/" + 
+                                          self.image_label_directory[fname] +
+                                          "/" + fname))
             y[i] = int(self.image_label_directory[fname].replace("-1", "0"))
 
         # print("Shape of X: " + str(X.shape))
@@ -241,16 +239,16 @@ def custom_loss(i_dist_output_layer, alpha=1.):
         l_stability_col_2 = tf.keras.losses.kullback_leibler_divergence(1-y_pred, 1-i_dist_output_layer) 
         l_stability = l_stability_col_1 + l_stability_col_2
 
-        # l_stability_print = tf.print('\nl_stability shape is: ', tf.shape(l_stability), '\nl_stability is: ', l_stability, 
-        #                              '\nl_0 shape is: ', tf.shape(l_0), '\nl_0: ', l_0, 
-        #                              '\ndist_output shape is: ', tf.shape(i_dist_output_layer), '\ndist_output is: ', i_dist_output_layer,
-        #                              '\ny_pred shape is: ', tf.shape(y_pred), '\ny_pred is: ', y_pred,
-        #                              '\ny_true shape is: ', tf.shape(y_true), '\ny_true is: ', y_true)
+        l_stability_print = tf.print('\nl_stability shape is: ', tf.shape(l_stability), '\nl_stability is: ', l_stability, 
+                                     '\nl_0 shape is: ', tf.shape(l_0), '\nl_0: ', l_0, 
+                                     '\ndist_output shape is: ', tf.shape(i_dist_output_layer), '\ndist_output is: ', i_dist_output_layer,
+                                     '\ny_pred shape is: ', tf.shape(y_pred), '\ny_pred is: ', y_pred,
+                                     '\ny_true shape is: ', tf.shape(y_true), '\ny_true is: ', y_true)
         
-        # with tf.control_dependencies([l_stability_print]):
-        #     return tf.identity(l_stability)
+        with tf.control_dependencies([l_stability_print]):
+            return tf.identity(l_stability)
 
-        return l_0 + l_stability * alpha
+        # return l_0 + l_stability * alpha
         
 
     return loss
@@ -334,7 +332,7 @@ def basic_dl_model(tile_side, saver, model_name, training_generator, validation_
 
 
     '''compile/fit'''
-    model.compile(optimizer=tf.keras.optimizers.Adam(), 
+    model.compile(optimizer='adam', 
                 #   loss=custom_loss(x_i_dist),
                   loss='binary_crossentropy',
                   metrics=['acc', precision_m, recall_m, f1_m, auc_m])
@@ -361,43 +359,38 @@ def main():
     trains a model from a set of tiles previously preprocessed and separated into
     folders according to the label
     '''
-    ###  ["modeRange", "1", "InceptionV3", True, "BCE", "RGB"]
-    ###  [     0        1         2          3     4      5  ]
-
-    ### 0: type of background filterinf --> "stdDev" or "modeRange"
-    ### 1: labelling of partially annotated triles --> "0" (non-epithelium) or "1" (epithelium)
-    ### 2: DL base architecture --> "InceptionResNetV2", "InceptionV3", "ResNet50", "Xception", "basic" (which is default)
-    ### 3: Variable that determines if layers of base architecture are trainable (no transfer learning) or not (transfer learning) --> True, False
-    ### 4: Loss function --> "BCE" (binary crossentropy) or "ST" (stability training) (TODO: todavia no esta implementado este parametro, falta terminarlo)
-    ### 5: Color model --> "RGB" or "HSV" 
+    
+    ### background_filters[0] --> ["stdDev", 0, "InceptionV3", True, "BCE", ]: 
+    ### "stdDev" --> stdDev o modeRange
+    ### "0" --> "0" or "1" depending on "partialsAre"
+    ### "InceptionV3" --> determines the base model. Can be one between "InceptionResNetV2", "InceptionV3", "ResNet50", "Xception", "basic" (which is default)
+    ### True --> wether conv_base is trainable or not (if not, then transfer learning is applied)
+    ### "BCE" --> loss function: can be "BCE" (binary crossentropy) or "ST" (stability training) (TODO: todavia no esta implementado este parametro, falta terminarlo)
+    ### "RGB" --> color model, can be "RGB" or "HSV" (TODO: todavia no esta implementado este parametro, falta terminarlo)
 
     parameter_sets = [
-                      ["modeRange", "1", "InceptionV3", True, "BCE", "HSV"],
+                    #   ["modeRange", "1", "InceptionV3", True, "BCE", "RGB"],
                     #   ["stdDev", "1", "InceptionV3", True, "BCE", "RGB"],
                     #   ["modeRange", "0", "InceptionV3", True, "BCE", "RGB"],
                     #   ["stdDev", "0", "InceptionV3", True, "BCE", "RGB"],
                     #   ["modeRange", "0", "InceptionV3", False, "BCE", "RGB"],
                     #   ["modeRange", "1", "InceptionV3", False, "BCE", "RGB"],
-                      ["modeRange", "1", "ResNet50", True, "BCE", "HSV"],
                     #   ["modeRange", "1", "ResNet50", True, "BCE", "RGB"],
                     #   ["stdDev", "1", "ResNet50", True, "BCE", "RGB"],
                     #   ["modeRange", "0", "ResNet50", True, "BCE", "RGB"],
                     #   ["stdDev", "0", "ResNet50", True, "BCE", "RGB"],
-                      ["modeRange", "1", "basic", True, "BCE", "HSV"],
                     #   ["modeRange", "1", "basic", True, "BCE", "RGB"], # <--- got to 39 eopchs!
-                    #   ["stdDev", "1", "basic", True, "BCE", "RGB"],
+                      ["stdDev", "1", "basic", True, "BCE", "RGB"],
                     #   ["modeRange", "0", "basic", True, "BCE", "RGB"],
                     #   ["stdDev", "0", "basic", True, "BCE", "RGB"],
-                      ["modeRange", "1", "InceptionResNetV2", True, "BCE", "HSV"],
                     #   ["modeRange", "1", "InceptionResNetV2", True, "BCE", "RGB"],
                     #   ["stdDev", "1", "InceptionResNetV2", True, "BCE", "RGB"],
                     #   ["modeRange", "0", "InceptionResNetV2", True, "BCE", "RGB"],
                     #   ["stdDev", "0", "InceptionResNetV2", True, "BCE", "RGB"],
-                      ["modeRange", "1", "Xception", True, "BCE", "HSV"],
-                    #   ["modeRange", "1", "Xception", True, "BCE", "RGB"],
-                    #   ["stdDev", "1", "Xception", True, "BCE", "RGB"],
-                    #   ["modeRange", "0", "Xception", True, "BCE", "RGB"],
-                    #   ["stdDev", "0", "Xception", True, "BCE", "RGB"],
+                      ["modeRange", "1", "Xception", True, "BCE", "RGB"],
+                      ["stdDev", "1", "Xception", True, "BCE", "RGB"],
+                      ["modeRange", "0", "Xception", True, "BCE", "RGB"],
+                      ["stdDev", "0", "Xception", True, "BCE", "RGB"],
                       ]
 
     for p_set in parameter_sets:
@@ -414,11 +407,6 @@ def main():
         file_list, dir_list, counts = list_files_from_dir(directory=full_dir,
                                                           extension=".tif")
         
-        tohsv = False
-        if p_set[5] == "HSV":
-            tohsv = True
-
-
         print("\n\nImage folder: " + bg_filter_dir)
         print("Image path: " + full_dir)
         print("Number of elements in file list: " + str(len(file_list)))
@@ -426,7 +414,7 @@ def main():
         print("Base model: " + p_set[2])
         print("Base model trainable: " + str(p_set[3]))
         print("Loss function: " + str(p_set[4]))
-        print("Color model: " + str(p_set[5]) + "- tohsv=" + str(tohsv))
+        print("Color model: " + str(p_set[5]))
 
         train_list, val_list, _ = train_validation_test_partition(file_list, prop=(0.6, 0.4, 0.0))
         
@@ -434,19 +422,16 @@ def main():
 
         tile_side = 128
         saver = CustomSaver(model_name=model_name, tile_side=tile_side)
-
         training_generator = ImageGenerator2(list_IDs=train_list,
                                              image_label_directory=ild,
                                              source_directory=full_dir,
                                              tile_side=tile_side,
-                                             batch_size=64, 
-                                             hsv=tohsv)
+                                             batch_size=64)
         validation_generator = ImageGenerator2(list_IDs=val_list,
                                                image_label_directory=ild,
                                                source_directory=full_dir,
                                                tile_side=tile_side,
-                                               batch_size=64,
-                                               hsv=tohsv)
+                                               batch_size=64)
         
         class_weight = {0: 1., 1: (counts["-1"]+counts["0"])/counts["1"]}    
 

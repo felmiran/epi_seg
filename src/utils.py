@@ -5,7 +5,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
 from math import floor
-from cv2 import cvtColor, COLOR_RGB2HSV, normalize, CV_32F, NORM_MINMAX
+from cv2 import cvtColor, COLOR_BGR2HSV, normalize, CV_32F, NORM_MINMAX
 from classes import NDPImage, ImageAnnotationList
 from collections import Counter
 
@@ -40,7 +40,7 @@ def list_files_from_dir(directory="", extension=".ndpi"):
     #       tiene que tener "**/*" pero para q funcione con train.py y test.py tiene
     #       tiene que tener "/**/*"
 
-    glb = glob.glob(directory + "**/*" + extension, recursive=True)
+    glb = glob.glob(directory + "/**/*" + extension, recursive=True)
 
     file_list = [os.path.basename(f) for f in glb]
     dir_list = [os.path.dirname(f).replace(directory + "\\", "") for f in glb]
@@ -84,25 +84,30 @@ def to_hsv(image):
     NDPI images extracted with Openslide come in RGBA,
     so the last channel is dismissed.
     '''
-    return cvtColor(image, COLOR_RGB2HSV)
+    return cvtColor(image, COLOR_BGR2HSV)
 
 
-def normalize_image(image):
+def normalize_image(image, hsv=False):
     # TODO pasar a "utils.py"
     '''
     image corresponds to a numpy array.
     '''
-    # return normalize(image, None, alpha=0., beta=1.,
-    #                  dtype=CV_32F, norm_type=NORM_MINMAX)
-    image = image / 255.
-    image -= 0.5
-    image *= 2.
-    return image
+    
+    norm_image = image / 255.
+    
+    if hsv:
+        norm_image[:,:,0] = norm_image[:,:,0] * 255. / 179.
+    
+    norm_image -= 0.5
+    norm_image *= 2.
+
+    return norm_image
 
 
 def train_validation_test_partition(file_list, prop=(0.6, 0.4, 0.0)):
     lf = len(file_list)
     indexes = np.arange(lf)
+    np.random.seed(9)
     np.random.shuffle(indexes)
     train_list = [file_list[indexes[i]]
                   for i in range(0, floor(prop[0]*lf))]

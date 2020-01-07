@@ -1,7 +1,7 @@
 import os
 from classes import NDPImage, ImageAnnotationList
 from utils import save_np_as_image, extract_region, build_dirs, \
-    list_files_from_dir, to_hsv, normalize_image, call_ndpi_ndpa
+    list_files_from_dir, normalize_image, call_ndpi_ndpa
 from cv2 import cvtColor, COLOR_RGB2HSV, COLOR_RGB2GRAY, COLOR_BGR2RGB, \
     normalize, CV_32F, NORM_MINMAX, imread, calcHist, transpose, flip
 from math import ceil, floor
@@ -95,9 +95,6 @@ def rectangle_split_ndpi(ndp_image, split_width, split_height,
                                                  level=lvl,
                                                  size=(width, height))
                            )[:, :, :3]
-
-            if tohsv:
-                reg = to_hsv(reg)
 
             dimensions = "_({},{})_{}x{}".format(w*width, h*height,
                                                  width, height)
