@@ -4,8 +4,9 @@ import glob
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.ndimage import convolve
 from math import floor
-from cv2 import cvtColor, COLOR_BGR2HSV, normalize, CV_32F, NORM_MINMAX
+from cv2 import cvtColor, COLOR_BGR2HSV, normalize, CV_32F, NORM_MINMAX, blur
 from classes import NDPImage, ImageAnnotationList
 from collections import Counter
 
@@ -77,7 +78,6 @@ def extract_region(np_array, square_top_left_corner, square_height,
 
 
 def to_hsv(image):
-    # TODO pasar a "utils.py"
     '''
     Image corresponds to a numpy array.
     function equires original image to come in RGB.
@@ -88,7 +88,6 @@ def to_hsv(image):
 
 
 def normalize_image(image, hsv=False):
-    # TODO pasar a "utils.py"
     '''
     image corresponds to a numpy array.
     '''
@@ -102,6 +101,11 @@ def normalize_image(image, hsv=False):
     norm_image *= 2.
 
     return norm_image
+
+
+def blur_image(image, kernel_shape=(4,4)):
+    kernel = np.ones((kernel_shape[0],kernel_shape[1], 3)) / (kernel_shape[0]*kernel_shape[1]*3)
+    return convolve(image, kernel)
 
 
 def train_validation_test_partition(file_list, prop=(0.6, 0.4, 0.0)):

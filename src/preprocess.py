@@ -122,7 +122,7 @@ def tile_is_background_1(image, threshold=0.85):
 
 def rectangle_split_ndpi_ndpa(ndp_image, image_annotation_list, split_height,
                               split_width, tohsv=False, path_ndpi="../split/X",
-                              path_ndpa="../split/mask", n_bkgnd_tiles=5000):
+                              n_bkgnd_tiles=2500):
     '''
     Splits ndpi into tiles and saves lanel as dict in "labels.txt".
     Keys are filenames.
@@ -148,59 +148,62 @@ def rectangle_split_ndpi_ndpa(ndp_image, image_annotation_list, split_height,
     lvl=1
 
     for h in tqdm(range(n_ver)):
+        height = split_height
         if h == n_ver-1:
             height = size_ver - (n_ver - 1) * split_height
 
         for w in range(n_hor):
+            width = split_width
             if w == n_hor-1:
                 width = size_hor - (n_hor - 1) * split_width
 
-            reg_ndpi = np.array(ndp_image.read_region(location=(w * width * (lvl+1),
-                                                                h * height * (lvl+1)),
-                                                      level=lvl, size=(width,
-                                                                     height)
-                                                      ))[:, :, :3]
+            if height == split_height and width == split_width:
+                reg_ndpi = np.array(ndp_image.read_region(location=(w * width * (lvl+1),
+                                                                    h * height * (lvl+1)),
+                                                        level=lvl, size=(width,
+                                                                        height)
+                                                        ))[:, :, :3]
 
-            reg_ndpa = extract_region(merged,
-                                      square_top_left_corner=(w * width,
-                                                              h * height),
-                                      square_height=height, square_width=width)
+                reg_ndpa = extract_region(merged,
+                                        square_top_left_corner=(w * width,
+                                                                h * height),
+                                        square_height=height, square_width=width)
 
-            # dimensions = "_({},{})_{}x{}".format(w * width, h * height, width,
-            #                                      height)
-            
-            dimensions = "_(h{}-{},w{}-{})_{}x{}".format(
-                h, n_ver, w, n_hor, height, width)
-            
-            split_filename = filename.replace(".ndpi", "")
-            split_filename = split_filename + dimensions + ".tif"
+                # dimensions = "_({},{})_{}x{}".format(w * width, h * height, width,
+                #                                      height)
+                
+                dimensions = "_(h{}-{},w{}-{})_{}x{}".format(
+                    h, n_ver, w, n_hor, height, width)
+                
+                split_filename = filename.replace(".ndpi", "")
+                split_filename = split_filename + dimensions + ".tif"
 
 
 
-            ######## stdDev
-            # _, is_bkgnd = tile_is_background_2(reg_ndpi)
+                ######## stdDev
+                # _, is_bkgnd = tile_is_background_2(reg_ndpi)
 
-            ######## modeRange
-            _, is_bkgnd = tile_is_background_1(reg_ndpi, threshold=0.85)
+                ######## modeRange
+                _, is_bkgnd = tile_is_background_1(reg_ndpi, threshold=0.85)
 
-            if is_bkgnd:
-                if bkgnd_tiles_counter < n_bkgnd_tiles:
-                    labels[split_filename] = 2
-                    bkgnd_tiles_counter += 1
-                    tile_class = "-1"
+                if is_bkgnd:
+                    if bkgnd_tiles_counter < n_bkgnd_tiles:
+                        labels[split_filename] = 2
+                        bkgnd_tiles_counter += 1
+                        tile_class = "-1"
+                    else:
+                        continue
                 else:
-                    continue
-            else:
-                if np.sum(reg_ndpa) == height * width:
-                # if np.sum(reg_ndpa) > 0:
-                    labels[split_filename] = 1
-                    tile_class = "1"
-                else:
-                    labels[split_filename] = 0
-                    tile_class = "0"
+                    if np.sum(reg_ndpa) == height * width:
+                    # if np.sum(reg_ndpa) > 0:
+                        labels[split_filename] = 1
+                        tile_class = "1"
+                    else:
+                        labels[split_filename] = 0
+                        tile_class = "0"
 
-            save_np_as_image(reg_ndpi, path_ndpi + "/" + tile_class +
-                             "/" + split_filename)
+                save_np_as_image(reg_ndpi, path_ndpi + "/" + tile_class +
+                                "/" + split_filename)
 
     json.dump(labels, open(path_ndpi + "/" + filename + ".txt", "w"))
 
@@ -236,7 +239,6 @@ def main():
                                   split_width=width,
                                   tohsv=False,
                                   path_ndpi="split/X",
-                                  path_ndpa="split/mask",
                                   n_bkgnd_tiles=5000)
 
     data_augmentation()
@@ -244,4 +246,5 @@ def main():
 
 if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     main()
